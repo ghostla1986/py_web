@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}订单管理系统{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            min-height: 100vh;
+            background-color: #f0f2f5;
+        }
+
+        /* ====== 左侧栏 ====== */
+        .sidebar {
+            width: 220px;
+            background: #1e293b;
+            color: #cbd5e1;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 20px 16px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #f1f5f9;
+            border-bottom: 1px solid #334155;
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 12px 0;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: #334155;
+            color: #e2e8f0;
+            text-decoration: none;
+        }
+
+        .nav-item.active {
+            background: #334155;
+            color: #38bdf8;
+            border-left-color: #38bdf8;
+        }
+
+        .nav-item .nav-icon {
+            margin-right: 10px;
+            font-size: 18px;
+            width: 22px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #334155;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        /* ====== 主内容区 ====== */
+        .main-content {
+            margin-left: 220px;
+            flex: 1;
+            padding: 20px 30px;
+            min-height: 100vh;
+        }
+
+        {% block extra_style %}{% endblock %}
+    </style>
+</head>
+<body>
+
+    <!-- 左侧栏 -->
+    <div class="sidebar">
+        <div class="sidebar-header">订单管理系统</div>
+        <nav class="sidebar-nav">
+            <a href="/users/list" class="nav-item {% if request.path.startswith('/users') and not request.path.startswith('/users/address') %}active{% endif %}">
+                <span class="nav-icon">👥</span> 用户管理
+            </a>
+            <a href="/users/address" class="nav-item" style="padding-left:44px;font-size:14px;{% if request.path.startswith('/users/address') %}color:#38bdf8;border-left-color:#38bdf8;background:#334155;{% endif %}">
+                <span style="margin-right:8px;">▸</span> 地址管理
+            </a>
+            {% if session.get('user_level') not in ('物流仓管员', '物流专员') %}
+            <a href="/main/list" class="nav-item {% if request.path.startswith('/main') and not request.path.startswith('/main/ship') %}active{% endif %}">
+                <span class="nav-icon">📋</span> 订单管理
+            </a>
+            {% endif %}
+            {% if session.get('user_level') == '管理员' %}
+            <a href="/users/audit" class="nav-item" style="padding-left:44px;font-size:14px;{% if request.path.startswith('/users/audit') %}color:#38bdf8;border-left-color:#38bdf8;background:#334155;{% endif %}">
+                <span style="margin-right:8px;">▸</span> 订单审核
+            </a>
+            {% endif %}
+            {% if session.get('user_level') in ('管理员', '物流仓管员', '物流专员') %}
+            <a href="/main/ship_list" class="nav-item {% if request.path.startswith('/main/ship') %}active{% endif %}">
+                <span class="nav-icon">🚚</span> 物流管理
+            </a>
+            <a href="/inventory/list" class="nav-item {% if request.path.startswith('/inventory') %}active{% endif %}">
+                <span class="nav-icon">📦</span> 库存管理
+            </a>
+            {% endif %}
+        </nav>
+        <div class="sidebar-footer">{{ session.get('user_name', '') }}</div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="/static/jquery-4.0.0.min.js"></script>
+    <script src="/static/js/bootstrap.js"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

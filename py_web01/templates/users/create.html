@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}新增用户{% endblock %}
+
+{% block content %}
+<div style="margin-top:30px;">
+    <h2>新增用户 <a href="/users/list" class="btn btn-default pull-right">返回列表</a></h2>
+    <form method="post" action="/users/create" style="max-width:500px;margin-top:30px;">
+        <div class="form-group">
+            <label>姓名</label>
+            <input type="text" name="name" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>用户等级</label>
+            <select name="level" class="form-control" required>
+                <option value="普通用户">普通用户</option>
+                <option value="物流仓管员">物流仓管员</option>
+                <option value="管理员">管理员</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>享受折扣（0.00~1.00）</label>
+            <input type="number" step="0.01" name="discount" class="form-control" value="1.00" required>
+        </div>
+        <button type="submit" class="btn btn-primary">提交</button>
+    </form>
+</div>
+{% endblock %}

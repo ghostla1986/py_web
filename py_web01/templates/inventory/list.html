@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}库存管理{% endblock %}
+
+{% block content %}
+<style>
+    .inventory-container {
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-radius: 12px;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+    }
+
+    .page-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+        margin: 0;
+    }
+
+    .table-card {
+        background: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        border: none;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table thead th {
+        background-color: #fcfcfc;
+        border-bottom: 2px solid #eee;
+        color: #666;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        padding: 15px;
+    }
+
+    .table tbody td {
+        padding: 15px;
+        vertical-align: middle;
+        color: #444;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .price-text {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .quantity-text {
+        font-weight: 500;
+        color: #495057;
+    }
+
+    .quantity-low {
+        color: #e03131;
+        font-weight: 600;
+    }
+
+    .action-link {
+        text-decoration: none;
+        font-size: 13px;
+        margin: 0 5px;
+        transition: color 0.2s;
+        border: none;
+        background: none;
+        cursor: pointer;
+        padding: 0;
+    }
+    .btn-edit { color: #4dabf7; }
+    .btn-delete { color: #ff6b6b; }
+    .action-link:hover { text-decoration: underline; }
+
+    .inline-delete-form {
+        display: inline;
+    }
+
+    .btn-create {
+        padding: 8px 20px;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+
+    .stock-bar {
+        height: 6px;
+        border-radius: 3px;
+        background-color: #e9ecef;
+        margin-top: 4px;
+        width: 66%;
+    }
+
+    .stock-bar-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.3s;
+    }
+</style>
+
+<div class="inventory-container">
+    <div class="page-header">
+        <h2 class="page-title">库存管理</h2>
+        {% if session.get('user_level') == '管理员' %}
+        <a href="/inventory/create" class="btn btn-primary btn-create">+ 新建商品</a>
+        {% endif %}
+    </div>
+
+    <div class="table-card">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>商品</th>
+                    <th>价格</th>
+                    <th>剩余数量</th>
+                    {% if session.get('user_level') == '管理员' %}
+                    <th>出库数量</th>
+                    <th>总量</th>
+                    <th style="text-align: center;">操作</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in inventory %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><strong>{{ item.product }}</strong></td>
+                    <td class="price-text">¥{{ "{:,.2f}".format(item.price) }}</td>
+                    <td>
+                        <span class="quantity-text {% if item.remaining_qty <= 10 %}quantity-low{% endif %}">{{ item.remaining_qty }}</span>
+                        <div class="stock-bar">
+                            <div class="stock-bar-fill" style="width: {{ (item.remaining_qty / item.total_qty * 100) if item.total_qty > 0 else 0 }}%; background-color: {% if item.remaining_qty <= 10 %}#e03131{% elif item.remaining_qty <= 50 %}#f9a825{% else %}#2f9e44{% endif %};"></div>
+                        </div>
+                    </td>
+                    {% if session.get('user_level') == '管理员' %}
+                    <td class="quantity-text" style="text-align:center;">{{ item.outbound_qty }}</td>
+                    <td class="quantity-text" style="text-align:center;">{{ item.total_qty }}</td>
+                    <td style="text-align: center;">
+                        <a href="/inventory/edit/{{ item.id }}" class="action-link btn-edit">编辑</a>
+                        <span style="color: #ddd;">|</span>
+                        <form class="inline-delete-form" method="post" action="/inventory/delete/{{ item.id }}" onsubmit="return confirm('确定删除商品 #{{ item.id }} 吗？')">
+                            <button type="submit" class="action-link btn-delete">删除</button>
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

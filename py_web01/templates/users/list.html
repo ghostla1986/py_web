@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}用户管理{% endblock %}
+
+{% block content %}
+<style>
+    .users-container {
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-radius: 12px;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+    }
+
+    .page-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+        margin: 0;
+    }
+
+    .table-card {
+        background: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        border: none;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table thead th {
+        background-color: #fcfcfc;
+        border-bottom: 2px solid #eee;
+        color: #666;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        padding: 15px;
+    }
+
+    .table tbody td {
+        padding: 15px;
+        vertical-align: middle;
+        color: #444;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .level-badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .level-管理员 { background-color: #e3f2fd; color: #1565c0; }
+    .level-普通用户 { background-color: #e8f5e9; color: #2e7d32; }
+    .level-物流仓管员 { background-color: #e8eaf6; color: #283593; }
+
+    .action-link {
+        text-decoration: none;
+        font-size: 13px;
+        margin: 0 5px;
+        transition: color 0.2s;
+        border: none;
+        background: none;
+        cursor: pointer;
+        padding: 0;
+    }
+    .btn-edit { color: #4dabf7; }
+    .btn-delete { color: #ff6b6b; }
+    .btn-save { color: #2f9e44; }
+    .action-link:hover { text-decoration: underline; }
+
+    .inline-delete-form {
+        display: inline;
+    }
+
+    .btn-create {
+        padding: 8px 20px;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+
+    .edit-select {
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        font-size: 13px;
+    }
+
+    .edit-row td {
+        background-color: #fffde7 !important;
+    }
+</style>
+
+<div class="users-container">
+    <div class="page-header">
+        <h2 class="page-title">用户管理</h2>
+        {% if session.get('user_level') == '管理员' %}
+        <button class="btn btn-primary btn-create" onclick="addNewRow()">+ 新增用户</button>
+        {% endif %}
+    </div>
+
+    <div class="table-card">
+        <table class="table table-hover" id="userTable">
+            <thead>
+                <tr>
+                    <th>姓名</th>
+                    <th>用户等级</th>
+                    <th>享受折扣</th>
+                    <th>加入时间</th>
+                    {% if session.get('user_level') == '管理员' %}
+                    <th style="text-align: center;">操作</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr id="user-row-{{ u.id }}" data-id="{{ u.id }}">
+                    <td><strong>{{ u.name }}</strong></td>
+                    <td class="level-cell">
+                        <span class="level-badge level-{{ u.level }}">{{ u.level }}</span>
+                    </td>
+                    <td class="discount-cell">{{ "{:.0%}".format(u.discount) }}</td>
+                    <td style="color: #888; font-size: 14px;">{{ u.join_time }}</td>
+                    {% if session.get('user_level') == '管理员' %}
+                    <td style="text-align: center;">
+                        <button class="action-link btn-edit" onclick="startEdit({{ u.id }})" id="edit-btn-{{ u.id }}">编辑</button>
+                        <span style="color: #ddd;">|</span>
+                        <form class="inline-delete-form" method="post" action="/users/delete/{{ u.id }}" onsubmit="return confirm('确定删除用户 {{ u.name }} 吗？')">
+                            <button type="submit" class="action-link btn-delete">删除</button>
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+var editingId = null;
+var nextNewId = -1;
+
+function addNewRow() {
+    if (editingId) {
+        cancelEdit(editingId);
+    }
+
+    var tbody = document.querySelector('#userTable tbody');
+    var newId = nextNewId--;
+    var newRow = document.createElement('tr');
+    newRow.id = 'user-row-' + newId;
+    newRow.dataset.id = newId;
+    newRow.className = 'edit-row';
+
+    newRow.innerHTML = '<td><input type="text" class="form-control" id="new-name-' + newId + '" placeholder="输入姓名" style="font-size:13px;height:32px;"></td>' +
+        '<td><select class="edit-select" id="new-level-' + newId + '">' +
+            '<option value="普通用户">普通用户</option>' +
+            '<option value="物流仓管员">物流仓管员</option>' +
+            '<option value="管理员">管理员</option>' +
+        '</select></td>' +
+        '<td><select class="edit-select" id="new-discount-' + newId + '">' +
+            '<option value="100%">100%</option>' +
+            '<option value="90%">90%</option>' +
+            '<option value="80%">80%</option>' +
+            '<option value="70%">70%</option>' +
+            '<option value="60%">60%</option>' +
+            '<option value="50%">50%</option>' +
+        '</select></td>' +
+        '<td style="color:#888;font-size:14px;">新增</td>' +
+        '<td style="text-align:center;">' +
+            '<button class="action-link btn-save" onclick="saveNew(' + newId + ')">保存</button>' +
+            '<span style="color:#ddd;">|</span>' +
+            '<button class="action-link btn-delete" onclick="cancelNew(' + newId + ')">取消</button>' +
+        '</td>';
+
+    tbody.insertBefore(newRow, tbody.firstChild);
+    editingId = newId;
+    document.getElementById('new-name-' + newId).focus();
+}
+
+function cancelNew(rowId) {
+    var row = document.getElementById('user-row-' + rowId);
+    if (row) row.remove();
+    editingId = null;
+}
+
+function saveNew(rowId) {
+    var nameInput = document.getElementById('new-name-' + rowId);
+    var levelSelect = document.getElementById('new-level-' + rowId);
+    var discountSelect = document.getElementById('new-discount-' + rowId);
+
+    var name = nameInput.value.trim();
+    if (!name) {
+        alert('请输入姓名');
+        nameInput.focus();
+        return;
+    }
+
+    var discount = parseInt(discountSelect.value) / 100;
+
+    var fd = new FormData();
+    fd.append('name', name);
+    fd.append('level', levelSelect.value);
+    fd.append('discount', discount);
+
+    fetch('/users/api_create', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                alert('用户 "' + name + '" 创建成功！\n默认密码：123456\n请及时联系管理员修改密码。');
+                location.reload();
+            } else {
+                alert(data.error || '创建失败');
+            }
+        })
+        .catch(function() { alert('网络错误'); });
+}
+
+function startEdit(userId) {
+    if (editingId && editingId !== userId) {
+        cancelEdit(editingId);
+    }
+
+    var row = document.getElementById('user-row-' + userId);
+    var levelCell = row.querySelector('.level-cell');
+    var discountCell = row.querySelector('.discount-cell');
+    var editBtn = document.getElementById('edit-btn-' + userId);
+
+    var currentLevel = levelCell.textContent.trim();
+    var currentDiscount = discountCell.textContent.trim();
+
+    levelCell.innerHTML = '<select class="edit-select" id="level-select-' + userId + '">' +
+        '<option value="普通用户"' + (currentLevel === '普通用户' ? ' selected' : '') + '>普通用户</option>' +
+        '<option value="物流仓管员"' + (currentLevel === '物流仓管员' ? ' selected' : '') + '>物流仓管员</option>' +
+        '<option value="管理员"' + (currentLevel === '管理员' ? ' selected' : '') + '>管理员</option>' +
+        '</select>';
+
+    var discountOptions = ['50%', '60%', '70%', '80%', '90%', '100%'];
+    var discountHtml = '<select class="edit-select" id="discount-select-' + userId + '">';
+    for (var i = 0; i < discountOptions.length; i++) {
+        var selected = discountOptions[i] === currentDiscount ? ' selected' : '';
+        discountHtml += '<option value="' + discountOptions[i] + '"' + selected + '>' + discountOptions[i] + '</option>';
+    }
+    discountHtml += '</select>';
+    discountCell.innerHTML = discountHtml;
+
+    row.classList.add('edit-row');
+    editBtn.textContent = '保存';
+    editBtn.className = 'action-link btn-save';
+    editBtn.onclick = function() { saveEdit(userId); };
+    editingId = userId;
+}
+
+function cancelEdit(userId) {
+    location.reload();
+}
+
+function saveEdit(userId) {
+    var levelSelect = document.getElementById('level-select-' + userId);
+    var discountSelect = document.getElementById('discount-select-' + userId);
+
+    var level = levelSelect.value;
+    var discountStr = discountSelect.value;
+    var discount = parseInt(discountStr) / 100;
+
+    var fd = new FormData();
+    fd.append('level', level);
+    fd.append('discount', discount);
+
+    fetch('/users/api_edit/' + userId, { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.error || '保存失败');
+            }
+        })
+        .catch(function() { alert('网络错误'); });
+}
+</script>
+{% endblock %}

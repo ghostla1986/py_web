@@ -1,0 +1,181 @@
+from flask import Blueprint, request, redirect, jsonify, render_template, session
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'utils'))
+from db import fetch_all, fetch_one, execute
+
+inv = Blueprint("inventory", __name__)
+
+
+# ========== 页面路由 ==========
+
+@inv.route('/inventory/list', methods=["GET", "POST"])
+def inventory_list():
+    user_level = session.get('user_level', '')
+    if user_level not in ('管理员', '物流仓管员', '物流专员'):
+        return redirect('/main/list')
+    rows = fetch_all(
+        "SELECT id, product, price, total_qty, outbound_qty, remaining_qty FROM inventory ORDER BY id"
+    )
+    items = []
+    for r in rows:
+        items.append({
+            "id": r[0],
+            "product": r[1],
+            "price": float(r[2]),
+            "total_qty": r[3],
+            "outbound_qty": r[4],
+            "remaining_qty": r[5],
+        })
+    return render_template("inventory/list.html", inventory=items)
+
+
+@inv.route('/inventory/create', methods=["GET", "POST"])
+def create_item():
+    if request.method == "GET":
+        return render_template("inventory/create.html")
+
+    try:
+        product = request.form.get("product")
+        price_str = request.form.get("price")
+        total_str = request.form.get("total_qty")
+
+        if not product or not price_str or not total_str:
+            return "缺少必要字段", 400
+
+        price = float(price_str)
+        total_qty = int(total_str)
+
+        execute(
+            "INSERT INTO inventory (product, price, total_qty, outbound_qty, remaining_qty) VALUES (%s, %s, %s, 0, %s)",
+            (product, price, total_qty, total_qty)
+        )
+        return redirect('/inventory/list')
+    except ValueError:
+        return "格式错误", 400
+    except Exception as e:
+        print(f"Error creating inventory item: {e}")
+        return "创建失败", 500
+
+
+@inv.route('/inventory/edit/<int:item_id>', methods=["GET", "POST"])
+def edit_item(item_id):
+    if request.method == "GET":
+        row = fetch_one(
+            "SELECT id, product, price, total_qty, outbound_qty, remaining_qty FROM inventory WHERE id=%s",
+            (item_id,)
+        )
+        if not row:
+            return "商品不存在", 404
+        item = {
+            "id": row[0],
+            "product": row[1],
+            "price": float(row[2]),
+            "total_qty": row[3],
+            "outbound_qty": row[4],
+            "remaining_qty": row[5],
+        }
+        return render_template("inventory/edit.html", item=item)
+
+    try:
+        product = request.form.get("product")
+        price_str = request.form.get("price")
+        total_str = request.form.get("total_qty")
+        outbound_str = request.form.get("outbound_qty")
+
+        if not product or not price_str or not total_str:
+            return "缺少必要字段", 400
+
+        price = float(price_str)
+        total_qty = int(total_str)
+        outbound_qty = int(outbound_str) if outbound_str else 0
+        remaining_qty = total_qty - outbound_qty
+
+        execute(
+            "UPDATE inventory SET product=%s, price=%s, total_qty=%s, outbound_qty=%s, remaining_qty=%s WHERE id=%s",
+            (product, price, total_qty, outbound_qty, remaining_qty, item_id)
+        )
+        return redirect('/inventory/list')
+    except ValueError:
+        return "格式错误", 400
+    except Exception as e:
+        print(f"Error updating inventory item: {e}")
+        return "编辑失败", 500
+
+
+@inv.route('/inventory/delete/<int:item_id>', methods=["POST"])
+def delete_item(item_id):
+    execute("DELETE FROM inventory WHERE id = %s", (item_id,))
+    return redirect('/inventory/list')
+
+
+# ========== JSON API（弹窗使用） ==========
+
+@inv.route('/inventory/get_item/<int:item_id>', methods=["GET"])
+def get_item(item_id):
+    row = fetch_one(
+        "SELECT id, product, price, total_qty, outbound_qty, remaining_qty FROM inventory WHERE id=%s",
+        (item_id,)
+    )
+    if not row:
+        return jsonify({"error": "商品不存在"}), 404
+    return jsonify({
+        "id": row[0],
+        "product": row[1],
+        "price": float(row[2]),
+        "total_qty": row[3],
+        "outbound_qty": row[4],
+        "remaining_qty": row[5],
+    })
+
+
+@inv.route('/inventory/api_create', methods=["POST"])
+def api_create_item():
+    try:
+        product = request.form.get("product")
+        price_str = request.form.get("price")
+        total_str = request.form.get("total_qty")
+
+        if not product or not price_str or not total_str:
+            return jsonify({"error": "缺少必要字段"}), 400
+
+        price = float(price_str)
+        total_qty = int(total_str)
+
+        new_id = execute(
+            "INSERT INTO inventory (product, price, total_qty, outbound_qty, remaining_qty) VALUES (%s, %s, %s, 0, %s)",
+            (product, price, total_qty, total_qty)
+        )
+        return jsonify({"success": True, "id": new_id})
+    except ValueError:
+        return jsonify({"error": "格式错误"}), 400
+    except Exception as e:
+        print(f"Error creating inventory item: {e}")
+        return jsonify({"error": "创建失败"}), 500
+
+
+@inv.route('/inventory/api_edit/<int:item_id>', methods=["POST"])
+def api_edit_item(item_id):
+    try:
+        product = request.form.get("product")
+        price_str = request.form.get("price")
+        total_str = request.form.get("total_qty")
+        outbound_str = request.form.get("outbound_qty")
+
+        if not product or not price_str or not total_str:
+            return jsonify({"error": "缺少必要字段"}), 400
+
+        price = float(price_str)
+        total_qty = int(total_str)
+        outbound_qty = int(outbound_str) if outbound_str else 0
+        remaining_qty = total_qty - outbound_qty
+
+        execute(
+            "UPDATE inventory SET product=%s, price=%s, total_qty=%s, outbound_qty=%s, remaining_qty=%s WHERE id=%s",
+            (product, price, total_qty, outbound_qty, remaining_qty, item_id)
+        )
+        return jsonify({"success": True})
+    except ValueError:
+        return jsonify({"error": "格式错误"}), 400
+    except Exception as e:
+        print(f"Error updating inventory item: {e}")
+        return jsonify({"error": "编辑失败"}), 500

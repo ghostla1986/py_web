@@ -1,0 +1,492 @@
+{% extends "base.html" %}
+
+{% block title %}地址管理{% endblock %}
+
+{% block content %}
+<style>
+    .addr-container {
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-radius: 12px;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+    }
+
+    .page-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+        margin: 0;
+    }
+
+    .table-card {
+        background: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        border: none;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table thead th {
+        background-color: #fcfcfc;
+        border-bottom: 2px solid #eee;
+        color: #666;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        padding: 15px;
+    }
+
+    .table tbody td {
+        padding: 15px;
+        vertical-align: middle;
+        color: #444;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .default-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        background-color: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .full-addr {
+        font-size: 13px;
+        line-height: 1.5;
+        color: #555;
+    }
+    .full-addr .detail-line {
+        color: #888;
+        font-size: 12px;
+    }
+
+    .action-link {
+        text-decoration: none;
+        font-size: 13px;
+        margin: 0 5px;
+        transition: color 0.2s;
+        border: none;
+        background: none;
+        cursor: pointer;
+        padding: 0;
+    }
+    .btn-edit { color: #4dabf7; }
+    .btn-delete { color: #ff6b6b; }
+    .btn-save { color: #2f9e44; }
+    .action-link:hover { text-decoration: underline; }
+
+    .edit-row td {
+        background-color: #fffde7 !important;
+    }
+
+    .edit-select {
+        padding: 3px 6px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        font-size: 12px;
+        max-width: 100px;
+    }
+
+    .edit-input {
+        padding: 3px 6px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        font-size: 12px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+    .empty-state .empty-icon { font-size: 48px; margin-bottom: 16px; }
+    .empty-state .empty-text { font-size: 16px; }
+</style>
+
+<div class="addr-container">
+    <div class="page-header">
+        <h2 class="page-title">地址管理</h2>
+        <button class="btn btn-primary" onclick="tryShowModal()">+ 新增地址</button>
+    </div>
+
+    <div class="table-card">
+        {% if addresses %}
+        <table class="table table-hover" id="addrTable">
+            <thead>
+                <tr>
+                    <th>用户</th>
+                    <th>收件人</th>
+                    <th>电话</th>
+                    <th>地址</th>
+                    <th>默认</th>
+                    <th>创建时间</th>
+                    <th style="text-align: center;">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in addresses %}
+                <tr id="addr-row-{{ a.id }}" data-id="{{ a.id }}">
+                    <td><strong>{{ a.username }}</strong></td>
+                    <td class="contact-cell">{{ a.contact }}</td>
+                    <td class="phone-cell">{{ a.phone }}</td>
+                    <td class="addr-cell">
+                        <div class="full-addr">
+                            {{ a.province }} {{ a.city }} {{ a.district }}{% if a.street %} {{ a.street }}{% endif %}
+                            {% if a.detail %}<div class="detail-line">{{ a.detail }}</div>{% endif %}
+                        </div>
+                    </td>
+                    <td>{% if a.is_default %}<span class="default-badge">默认</span>{% endif %}</td>
+                    <td style="color: #888; font-size: 14px;">{{ a.create_time }}</td>
+                    <td style="text-align: center;">
+                        <button class="action-link btn-edit" onclick="startEdit({{ a.id }})" id="edit-btn-{{ a.id }}">编辑</button>
+                        <span style="color: #ddd;">|</span>
+                        <button class="action-link btn-delete" onclick="deleteAddress({{ a.id }})">删除</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📍</div>
+            <div class="empty-text">暂无地址数据，点击上方「新增地址」添加</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 新增地址弹窗 -->
+<div class="modal fade" id="addAddrModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新增地址</h5>
+                <button type="button" class="close" onclick="hideModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addAddrForm">
+                    {% if session.get('user_level') == '管理员' %}
+                    <div class="form-group">
+                        <label>所属用户</label>
+                        <select name="username" class="form-control" required>
+                            <option value="">请选择用户</option>
+                            {% for u in users %}
+                            <option value="{{ u.name }}">{{ u.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% else %}
+                    <input type="hidden" name="username" value="{{ session.get('user_name') }}">
+                    {% endif %}
+                    <div class="form-row" style="display:flex;gap:10px;">
+                        <div class="form-group" style="flex:1;">
+                            <label>收件人</label>
+                            <input type="text" name="contact" class="form-control" required>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>联系电话</label>
+                            <input type="text" name="phone" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-row" style="display:flex;gap:10px;">
+                        <div class="form-group" style="flex:1;">
+                            <label>省</label>
+                            <select name="province" class="form-control" onchange="cascadeCity(this, 'add')" required>
+                                <option value="">请选择省</option>
+                                {% for p in provinces %}
+                                <option value="{{ p }}">{{ p }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>市</label>
+                            <select name="city" class="form-control" onchange="cascadeDistrict(this, 'add')" required>
+                                <option value="">请先选择省</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>区</label>
+                        <select name="district" class="form-control" required>
+                            <option value="">请先选择市</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>详细门牌地址</label>
+                        <input type="text" name="detail" class="form-control" placeholder="如：XX小区XX栋XX号">
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" name="is_default" class="form-check-input" id="addDefaultCheck">
+                        <label class="form-check-label" for="addDefaultCheck">设为默认地址</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideModal()">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddress()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ====== 地区数据（从后端注入） ======
+var REGIONS = {{ regions_json|safe }};
+var editingId = null;
+
+// ====== 模态弹窗（绕过jQuery直接手动控制） ======
+function tryShowModal() {
+    var modal = document.getElementById('addAddrModal');
+    if (!modal) { alert('弹窗元素不存在'); return; }
+    modal.style.display = 'block';
+    modal.classList.add('in');
+    // 添加遮罩层
+    var backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop fade in';
+    backdrop.id = 'myModalBackdrop';
+    document.body.appendChild(backdrop);
+    document.body.classList.add('modal-open');
+}
+
+function hideModal() {
+    var modal = document.getElementById('addAddrModal');
+    if (modal) { modal.style.display = 'none'; modal.classList.remove('in'); }
+    var backdrop = document.getElementById('myModalBackdrop');
+    if (backdrop) { backdrop.remove(); }
+    document.body.classList.remove('modal-open');
+}
+
+// ====== 联级下拉 ======
+function cascadeCity(provinceSelect, prefix) {
+    var val = provinceSelect.value;
+    var citySelect = provinceSelect.closest('form').querySelector('select[name="city"]');
+    var districtSelect = provinceSelect.closest('form').querySelector('select[name="district"]');
+
+    citySelect.innerHTML = '<option value="">请选择市</option>';
+    districtSelect.innerHTML = '<option value="">请先选择市</option>';
+
+    if (!val || !REGIONS[val]) return;
+    var cities = Object.keys(REGIONS[val].cities).sort();
+    for (var i = 0; i < cities.length; i++) {
+        var opt = document.createElement('option');
+        opt.value = cities[i];
+        opt.textContent = cities[i];
+        citySelect.appendChild(opt);
+    }
+}
+
+function cascadeDistrict(citySelect, prefix) {
+    var val = citySelect.value;
+    var provinceSelect = citySelect.closest('form').querySelector('select[name="province"]');
+    var districtSelect = citySelect.closest('form').querySelector('select[name="district"]');
+
+    districtSelect.innerHTML = '<option value="">请选择区</option>';
+
+    if (!val) return;
+    var province = provinceSelect.value;
+    if (!REGIONS[province] || !REGIONS[province].cities[val]) return;
+    var districts = Object.keys(REGIONS[province].cities[val].districts).sort();
+    for (var i = 0; i < districts.length; i++) {
+        var opt = document.createElement('option');
+        opt.value = districts[i];
+        opt.textContent = districts[i];
+        districtSelect.appendChild(opt);
+    }
+}
+
+// ====== 新建地址 ======
+function submitAddress() {
+    var form = document.getElementById('addAddrForm');
+    var fd = new FormData(form);
+
+    fetch('/users/address/add', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                hideModal();
+                form.reset();
+                location.reload();
+            } else {
+                alert(data.error || '添加失败');
+            }
+        })
+        .catch(function() { alert('网络错误'); });
+}
+
+// ====== 删除地址 ======
+function deleteAddress(addrId) {
+    if (!confirm('确定删除该地址吗？')) return;
+    var fd = new FormData();
+    fetch('/users/address/delete/' + addrId, { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.error || '删除失败');
+            }
+        })
+        .catch(function() { alert('网络错误'); });
+}
+
+// ====== 原地编辑 ======
+function startEdit(addrId) {
+    if (editingId && editingId !== addrId) {
+        location.reload();
+    }
+
+    fetch('/users/address/get/' + addrId)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) { alert(data.error); return; }
+            renderEditRow(addrId, data);
+        })
+        .catch(function() { alert('获取地址信息失败'); });
+}
+
+function renderEditRow(addrId, data) {
+    var row = document.getElementById('addr-row-' + addrId);
+    var editBtn = document.getElementById('edit-btn-' + addrId);
+
+    // 地址列：完整内联编辑
+    var addrHtml = '<div style="display:flex;flex-direction:column;gap:4px;">';
+    addrHtml += '<div style="display:flex;gap:4px;">';
+    addrHtml += '<select class="edit-select" id="edit-province-' + addrId + '" onchange="editCascadeCity(' + addrId + ')" style="max-width:80px;">';
+    var provinces = Object.keys(REGIONS).sort();
+    for (var i = 0; i < provinces.length; i++) {
+        var sel = provinces[i] === data.province ? ' selected' : '';
+        addrHtml += '<option value="' + provinces[i] + '"' + sel + '>' + provinces[i] + '</option>';
+    }
+    addrHtml += '</select>';
+    addrHtml += '<select class="edit-select" id="edit-city-' + addrId + '" onchange="editCascadeDistrict(' + addrId + ')" style="max-width:80px;"><option value="">市</option></select>';
+    addrHtml += '<select class="edit-select" id="edit-district-' + addrId + '" style="max-width:80px;"><option value="">区</option></select>';
+    addrHtml += '</div>';
+    addrHtml += '<input class="edit-input" id="edit-detail-' + addrId + '" value="' + (data.detail || '') + '" placeholder="详细门牌地址" style="font-size:12px;">';
+    addrHtml += '<label style="font-size:12px;font-weight:400;margin:0;"><input type="checkbox" id="edit-default-' + addrId + '"' + (data.is_default ? ' checked' : '') + '> 默认地址</label>';
+    addrHtml += '</div>';
+
+    // 联系人列
+    var contactHtml = '<input class="edit-input" id="edit-contact-' + addrId + '" value="' + data.contact + '" style="min-width:70px;">';
+    // 电话列
+    var phoneHtml = '<input class="edit-input" id="edit-phone-' + addrId + '" value="' + data.phone + '" style="min-width:90px;">';
+
+    row.cells[1].innerHTML = contactHtml;
+    row.cells[2].innerHTML = phoneHtml;
+    row.cells[3].innerHTML = addrHtml;
+
+    row.classList.add('edit-row');
+    editBtn.textContent = '保存';
+    editBtn.className = 'action-link btn-save';
+    editBtn.onclick = function() { saveEdit(addrId); };
+    editingId = addrId;
+
+    // 填充级联下拉的后续值
+    setTimeout(function() {
+        fillEditCascades(addrId, data);
+    }, 0);
+}
+
+function fillEditCascades(addrId, data) {
+    // 填充城市
+    var citySelect = document.getElementById('edit-city-' + addrId);
+    citySelect.innerHTML = '<option value="">市</option>';
+    if (REGIONS[data.province]) {
+        var cities = Object.keys(REGIONS[data.province].cities).sort();
+        for (var i = 0; i < cities.length; i++) {
+            var opt = document.createElement('option');
+            opt.value = cities[i];
+            opt.textContent = cities[i];
+            if (cities[i] === data.city) opt.selected = true;
+            citySelect.appendChild(opt);
+        }
+    }
+
+    // 填充区
+    var districtSelect = document.getElementById('edit-district-' + addrId);
+    districtSelect.innerHTML = '<option value="">区</option>';
+    if (REGIONS[data.province] && REGIONS[data.province].cities[data.city]) {
+        var districts = Object.keys(REGIONS[data.province].cities[data.city].districts).sort();
+        for (var i = 0; i < districts.length; i++) {
+            var opt = document.createElement('option');
+            opt.value = districts[i];
+            opt.textContent = districts[i];
+            if (districts[i] === data.district) opt.selected = true;
+            districtSelect.appendChild(opt);
+        }
+    }
+}
+
+function editCascadeCity(addrId) {
+    var province = document.getElementById('edit-province-' + addrId).value;
+    var citySelect = document.getElementById('edit-city-' + addrId);
+    var districtSelect = document.getElementById('edit-district-' + addrId);
+
+    citySelect.innerHTML = '<option value="">市</option>';
+    districtSelect.innerHTML = '<option value="">区</option>';
+
+    if (!province || !REGIONS[province]) return;
+    var cities = Object.keys(REGIONS[province].cities).sort();
+    for (var i = 0; i < cities.length; i++) {
+        var opt = document.createElement('option');
+        opt.value = cities[i];
+        opt.textContent = cities[i];
+        citySelect.appendChild(opt);
+    }
+}
+
+function editCascadeDistrict(addrId) {
+    var province = document.getElementById('edit-province-' + addrId).value;
+    var city = document.getElementById('edit-city-' + addrId).value;
+    var districtSelect = document.getElementById('edit-district-' + addrId);
+
+    districtSelect.innerHTML = '<option value="">区</option>';
+
+    if (!city || !REGIONS[province] || !REGIONS[province].cities[city]) return;
+    var districts = Object.keys(REGIONS[province].cities[city].districts).sort();
+    for (var i = 0; i < districts.length; i++) {
+        var opt = document.createElement('option');
+        opt.value = districts[i];
+        opt.textContent = districts[i];
+        districtSelect.appendChild(opt);
+    }
+}
+
+function saveEdit(addrId) {
+    var fd = new FormData();
+    fd.append('contact', document.getElementById('edit-contact-' + addrId).value);
+    fd.append('phone', document.getElementById('edit-phone-' + addrId).value);
+    fd.append('province', document.getElementById('edit-province-' + addrId).value);
+    fd.append('city', document.getElementById('edit-city-' + addrId).value);
+    fd.append('district', document.getElementById('edit-district-' + addrId).value);
+    fd.append('detail', document.getElementById('edit-detail-' + addrId).value);
+    fd.append('is_default', document.getElementById('edit-default-' + addrId).checked ? '1' : '0');
+
+    fetch('/users/address/edit/' + addrId, { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.error || '保存失败');
+            }
+        })
+        .catch(function() { alert('网络错误'); });
+}
+</script>
+{% endblock %}

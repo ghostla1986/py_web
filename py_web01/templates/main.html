@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文字游戏</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 800px;
+            height: 90vh;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 头部区域 */
+        .chat-header {
+            background: linear-gradient(to right, #4a54e1, #2575fc);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        /* 消息列表区域 */
+        .message-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+
+        .message-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .message-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .message-list::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        /* 消息样式 */
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .message.sent {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .message.received .message-content {
+            background-color: white;
+            border: 1px solid #e0e0e0;
+            color: #333;
+        }
+
+        .message.sent .message-content {
+            background: linear-gradient(to right, #4a54e1, #2575fc);
+            color: white;
+        }
+
+        .message-header {
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+            color: #666;
+        }
+
+        /* 输入区域 */
+        .input-area {
+            padding: 15px 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+            background-color: white;
+        }
+
+        .input-area textarea {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px 15px;
+            font-size: 1rem;
+            resize: none;
+            outline: none;
+            height: 50px;
+        }
+
+        .input-area textarea:focus {
+            border-color: #4a54e1;
+        }
+
+        .send-button {
+            background: linear-gradient(to right, #4a54e1, #2575fc);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 50px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-button:hover {
+            opacity: 0.9;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .chat-container {
+                height: 95vh;
+            }
+            
+            .message-content {
+                max-width: 80%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <!-- 头部 -->
+        <div class="chat-header">
+            <h1>文字游戏</h1>
+        </div>
+        
+        <!-- 消息列表 -->
+        <div class="message-list" id="message-list">
+            <!-- 消息将通过JavaScript动态添加 -->
+        </div>
+        
+        <!-- 输入区域 -->
+        <div class="input-area">
+            <textarea id="message-input" placeholder="输入消息..." rows="1"></textarea>
+            <button class="send-button" id="send-button">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const messageList = document.getElementById('message-list');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        
+        // 添加消息到UI
+        function addMessage(content, type = 'received', username = '系统') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const now = new Date();
+            const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            
+            let messageContent = '';
+            if (type === 'received') {
+                messageContent = `
+                    <div class="message-header">${username} · ${timeString}</div>
+                    <div class="message-content">${content}</div>
+                `;
+            } else {
+                messageContent = `
+                    <div class="message-header">你 · ${timeString}</div>
+                    <div class="message-content">${content}</div>
+                `;
+            }
+            
+            messageDiv.innerHTML = messageContent;
+            messageList.appendChild(messageDiv);
+            
+            // 滚动到底部
+            messageList.scrollTop = messageList.scrollHeight;
+        }
+        
+        // 发送消息到后端
+        async function sendMessage() {
+            const content = messageInput.value.trim();
+            if (!content) return;
+            
+            // 显示用户消息
+            addMessage(content, 'sent');
+            
+            // 清空输入框
+            messageInput.value = '';
+            
+            try {
+                // 发送POST请求到Flask后端
+                // 这里会发送JSON数据，后端可以通过 request.json.get('message') 获取
+                const response = await fetch('/main', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        message: content,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // 显示系统回复
+                    if (data.reply) {
+                        addMessage(data.reply, 'received', '系统:');
+                    } else if (data.error) {
+                        addMessage(`错误: ${data.error}`, 'received', '系统');
+                    }
+                } else {
+                    throw new Error('请求失败');
+                }
+            } catch (error) {
+                console.error('发送消息失败:', error);
+                addMessage('无法连接到服务器', 'received', '系统');
+            }
+        }
+        
+        // 事件监听
+        sendButton.addEventListener('click', sendMessage);
+        
+        // 按Enter发送消息，按Shift+Enter换行
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        // 自动调整textarea高度
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+        });
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 添加欢迎消息
+            addMessage('欢迎来到文字游戏世界！请问是否已创建角色？', 'received', '系统');
+        });
+    </script>
+</body>
+</html>

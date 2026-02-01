@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}新建商品{% endblock %}
+
+{% block content %}
+<div style="margin-top:30px;">
+    <h2>新建商品 <a href="/inventory/list" class="btn btn-default pull-right">返回列表</a></h2>
+    <form method="post" action="/inventory/create" style="max-width:500px;margin-top:30px;">
+        <div class="form-group">
+            <label>商品名称</label>
+            <input type="text" name="product" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>单价</label>
+            <input type="number" step="0.01" name="price" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>总数量</label>
+            <input type="number" name="total_qty" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary">提交</button>
+    </form>
+</div>
+{% endblock %}
