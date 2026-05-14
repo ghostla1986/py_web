@@ -148,6 +148,8 @@
                     <td style="text-align: center;">
                         {% if item.can_edit %}
                         <button class="action-link btn-resubmit" onclick="startResubmit({{ item.id }})" id="resubmit-btn-{{ item.id }}">修改并重新提交</button>
+                        {% elif item.can_delete %}
+                        <button class="action-link btn-delete" onclick="deleteItem({{ item.id }})">删除</button>
                         {% else %}
                         <span style="color: #aaa; font-size: 13px;">—</span>
                         {% endif %}
@@ -205,6 +207,17 @@ function saveResubmit(itemId) {
     fd.append('total_qty', total);
 
     fetch('/inventory/rejected/resubmit/' + itemId, { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) { location.reload(); }
+            else { alert(data.error || '提交失败'); }
+        })
+        .catch(function() { alert('网络错误'); });
+}
+
+function deleteItem(itemId) {
+    if (!confirm('确定删除该撤回商品吗？删除后不可恢复。')) return;
+    fetch('/inventory/rejected/delete/' + itemId, { method: 'POST' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.success) { location.reload(); }
