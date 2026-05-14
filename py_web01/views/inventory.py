@@ -260,28 +260,6 @@ def withdraw_pending(item_id):
     return jsonify({"success": True})
 
 
-# ========== 仓管员：删除自己的撤回/驳回/失效商品 ==========
-
-@inv.route('/inventory/rejected/delete/<int:item_id>', methods=["POST"])
-def delete_rejected(item_id):
-    user_level = session.get('user_level', '')
-    user_name = session.get('user_name', '')
-    if user_level not in ('物流仓管员', '物流专员'):
-        return jsonify({"error": "无权限"}), 403
-
-    row = fetch_one(
-        "SELECT id, submitted_by FROM inventory WHERE id=%s AND audit_status IN ('已驳回','已撤回','已失效')",
-        (item_id,)
-    )
-    if not row:
-        return jsonify({"error": "商品不存在或状态异常"}), 404
-    if row[1] != user_name:
-        return jsonify({"error": "只能删除自己的商品"}), 403
-
-    execute("DELETE FROM inventory WHERE id=%s", (item_id,))
-    return jsonify({"success": True})
-
-
 # ========== 待审批商品（管理员+仓管员通用） ==========
 
 @inv.route('/inventory/pending', methods=["GET"])
@@ -353,7 +331,7 @@ def rejected_items():
             "total_qty": r[3],
             "audit_status": audit_st,
             "can_edit": still_valid and audit_st == '已驳回',
-            "can_delete": True,
+            "can_delete": False,
             "create_time": r[5].strftime("%Y-%m-%d %H:%M:%S") if r[5] else ""
         })
     return render_template("inventory/rejected.html", items=items, deadline_days=REJECT_DEADLINE_DAYS)

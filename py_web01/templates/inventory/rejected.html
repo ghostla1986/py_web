@@ -113,7 +113,7 @@
     <div class="page-header">
         <div>
             <h2 class="page-title">被驳回商品</h2>
-            <div class="deadline-note">⏰ 被驳回的商品可在驳回后 {{ deadline_days }} 天内修改重提，超时自动失效；撤回商品可直接删除</div>
+            <div class="deadline-note">⏰ 被驳回的商品可在驳回后 {{ deadline_days }} 天内修改重提，超时自动标记为失效</div>
         </div>
     </div>
 
@@ -148,10 +148,8 @@
                     <td style="text-align: center;">
                         {% if item.can_edit %}
                         <button class="action-link btn-resubmit" onclick="startResubmit({{ item.id }})" id="resubmit-btn-{{ item.id }}">修改并重新提交</button>
-                        <span style="color: #ddd;">|</span>
-                        {% endif %}
-                        {% if item.can_delete %}
-                        <button class="action-link btn-delete" onclick="deleteItem({{ item.id }})">删除</button>
+                        {% else %}
+                        <span style="color: #aaa; font-size: 13px;">—</span>
                         {% endif %}
                     </td>
                 </tr>
@@ -215,15 +213,5 @@ function saveResubmit(itemId) {
         .catch(function() { alert('网络错误'); });
 }
 
-function deleteItem(itemId) {
-    if (!confirm('确定删除该商品吗？删除后不可恢复。')) return;
-    fetch('/inventory/rejected/delete/' + itemId, { method: 'POST' })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.success) { location.reload(); }
-            else { alert(data.error || '删除失败'); }
-        })
-        .catch(function() { alert('网络错误'); });
-}
 </script>
 {% endblock %}
