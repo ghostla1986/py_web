@@ -85,6 +85,7 @@
     }
     .btn-edit { color: #4dabf7; }
     .btn-delete { color: #ff6b6b; }
+    .btn-save { color: #2f9e44; }
     .action-link:hover { text-decoration: underline; }
 
     .inline-delete-form {
@@ -97,6 +98,28 @@
         font-weight: 500;
         transition: all 0.3s;
     }
+
+    .edit-select {
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        font-size: 13px;
+        height: 32px;
+    }
+
+    .edit-input {
+        font-size: 13px;
+        height: 32px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .edit-row td {
+        background-color: #fffde7 !important;
+    }
 </style>
 
 <div class="order-container">
@@ -106,7 +129,7 @@
     </div>
 
     <div class="table-card">
-        <table class="table table-hover">
+        <table class="table table-hover" id="orderTable">
             <thead>
                 <tr>
                     <th>序号</th>
@@ -120,23 +143,23 @@
             </thead>
             <tbody>
                 {% for o in orders %}
-                <tr id="order-row-{{ o.id }}">
-                    <td>{{ loop.index }}</td>
-                    <td><strong>{{ o.customer }}</strong></td>
-                    <td>{{ o.product }}</td>
-                    <td class="amount-text">¥{{ "{:,.2f}".format(o.amount) }}</td>
-                    <td>
+                <tr id="order-row-{{ o.id }}" data-id="{{ o.id }}">
+                    <td class="index-cell">{{ loop.index }}</td>
+                    <td class="customer-cell"><strong>{{ o.customer }}</strong></td>
+                    <td class="product-cell">{{ o.product }}</td>
+                    <td class="amount-cell amount-text">¥{{ "{:,.2f}".format(o.amount) }}</td>
+                    <td class="status-cell">
                         <span class="status-badge status-{{ o.status }}">{{ o.status }}</span>
                     </td>
-                    <td style="color: #888; font-size: 14px;">{{ o.create_time }}</td>
+                    <td class="time-cell" style="color: #888; font-size: 14px;">{{ o.create_time }}</td>
                     <td style="text-align: center;">
                         {% set user_level = session.get('user_level', '') %}
                         {% if user_level == '管理员' or o.status == '待处理' %}
-                        <a href="/main/edit/{{ o.id }}" class="action-link btn-edit">编辑</a>
+                        <button class="action-link btn-edit" onclick="startEdit({{ o.id }})" id="edit-btn-{{ o.id }}">编辑</button>
                         {% else %}
                         <span class="action-link btn-edit" style="color:#ccc;cursor:default;">编辑</span>
                         {% endif %}
-                        <span style="color: #ddd;">|</span>
+                        <span class="action-sep" style="color: #ddd;">|</span>
                         {% if user_level == '管理员' or o.status in ('待处理', '待发货') %}
                         <form class="inline-delete-form" method="post" action="/main/delete/{{ o.id }}" onsubmit="return confirm('确定删除订单 #{{ o.id }} 吗？')">
                             <button type="submit" class="action-link btn-delete">删除</button>
@@ -152,138 +175,151 @@
     </div>
 </div>
 
-<!-- 新建订单弹窗 -->
-<div class="modal fade" id="createModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">新建订单</h5>
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="createForm">
-                    <div class="form-group">
-                        <label>客户名称</label>
-                        <input type="text" name="customer" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label>商品名称</label>
-                        <input type="text" name="product" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label>金额</label>
-                        <input type="number" step="0.01" name="amount" class="form-control" required>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="submitCreate()">提交</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 编辑订单弹窗 -->
-<div class="modal fade" id="editModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">编辑订单 #<span id="editOrderId"></span></h5>
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="editForm">
-                    <input type="hidden" name="order_id" id="editOrderIdInput">
-                    <div class="form-group">
-                        <label>客户名称</label>
-                        <input type="text" name="customer" id="editCustomer" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label>商品名称</label>
-                        <input type="text" name="product" id="editProduct" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label>金额</label>
-                        <input type="number" step="0.01" name="amount" id="editAmount" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label>状态</label>
-                        {% if session.get('user_level') == '管理员' %}
-                        <select name="status" id="editStatus" class="form-control">
-                            <option value="待处理">待处理</option>
-                            <option value="待发货">待发货</option>
-                            <option value="已配送">已配送</option>
-                            <option value="已送达">已送达</option>
-                        </select>
-                        {% else %}
-                        <input type="text" id="editStatusDisplay" class="form-control" readonly>
-                        <input type="hidden" name="status" id="editStatus">
-                        {% endif %}
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="submitEdit()">保存</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
-// 新建订单
-function submitCreate() {
-    var form = document.getElementById('createForm');
-    var fd = new FormData(form);
+var editingId = null;
+var userLevel = '{{ session.get("user_level", "") }}';
+// 缓存每个订单行的原始值，用于取消时恢复
+var originalValues = {};
 
-    fetch('/main/api_create', { method: 'POST', body: fd })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.success) {
-                $('#createModal').modal('hide');
-                form.reset();
-                location.reload();
-            } else {
-                alert(data.error || '创建失败');
-            }
-        })
-        .catch(function() { alert('网络错误'); });
+function startEdit(orderId) {
+    if (editingId && editingId !== orderId) {
+        cancelEdit(editingId);
+    }
+
+    var row = document.getElementById('order-row-' + orderId);
+    var customerCell = row.querySelector('.customer-cell');
+    var productCell = row.querySelector('.product-cell');
+    var amountCell = row.querySelector('.amount-cell');
+    var statusCell = row.querySelector('.status-cell');
+    var editBtn = document.getElementById('edit-btn-' + orderId);
+
+    var currentCustomer = customerCell.textContent.trim();
+    var currentProduct = productCell.textContent.trim();
+    var currentAmount = amountCell.textContent.trim();
+    var currentStatus = statusCell.textContent.trim();
+
+    // 缓存原始值
+    originalValues[orderId] = {
+        customer: currentCustomer,
+        product: currentProduct,
+        amount: currentAmount,
+        status: currentStatus
+    };
+
+    // 提单人字段
+    customerCell.innerHTML = '<input type="text" class="edit-input" id="edit-customer-' + orderId + '" value="' + currentCustomer + '">';
+
+    // 商品字段
+    productCell.innerHTML = '<input type="text" class="edit-input" id="edit-product-' + orderId + '" value="' + currentProduct + '">';
+
+    // 金额字段（去掉 ¥ 前缀取数值）
+    var amountVal = currentAmount.replace('¥', '').replace(/,/g, '').trim();
+    if (userLevel === '管理员') {
+        amountCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-amount-' + orderId + '" value="' + amountVal + '">';
+    } else {
+        amountCell.innerHTML = '<span class="amount-text">' + currentAmount + '</span>';
+    }
+
+    // 状态字段
+    if (userLevel === '管理员') {
+        var statusOptions = ['待处理', '待发货', '已配送', '已送达'];
+        var statusHtml = '<select class="edit-select" id="edit-status-' + orderId + '">';
+        for (var i = 0; i < statusOptions.length; i++) {
+            var selected = statusOptions[i] === currentStatus ? ' selected' : '';
+            statusHtml += '<option value="' + statusOptions[i] + '"' + selected + '>' + statusOptions[i] + '</option>';
+        }
+        statusHtml += '</select>';
+        statusCell.innerHTML = statusHtml;
+    } else {
+        statusCell.innerHTML = '<span class="status-badge status-' + currentStatus + '">' + currentStatus + '</span>';
+    }
+
+    // 把"删除"替换成"取消"
+    var deleteForm = row.querySelector('.inline-delete-form');
+    var separator = row.querySelector('.action-sep');
+    if (deleteForm) {
+        deleteForm.style.display = 'none';
+        var cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'action-link btn-delete';
+        cancelBtn.textContent = '取消';
+        cancelBtn.id = 'cancel-btn-' + orderId;
+        cancelBtn.onclick = function() { cancelEdit(orderId); };
+        if (separator) {
+            separator.parentNode.insertBefore(cancelBtn, separator.nextSibling);
+        } else {
+            deleteForm.parentNode.appendChild(cancelBtn);
+        }
+    }
+
+    row.classList.add('edit-row');
+    editBtn.textContent = '保存';
+    editBtn.className = 'action-link btn-save';
+    editBtn.onclick = function() { saveEdit(orderId); };
+    editingId = orderId;
 }
 
-// 编辑订单 - 打开弹窗并填充数据
-function openEditModal(orderId) {
-    fetch('/main/get_order/' + orderId)
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.error) { alert(data.error); return; }
-            document.getElementById('editOrderId').textContent = data.id;
-            document.getElementById('editOrderIdInput').value = data.id;
-            document.getElementById('editCustomer').value = data.customer;
-            document.getElementById('editProduct').value = data.product;
-            document.getElementById('editAmount').value = data.amount;
-            document.getElementById('editStatus').value = data.status;
-            var displayEl = document.getElementById('editStatusDisplay');
-            if (displayEl) { displayEl.value = data.status; }
-            $('#editModal').modal('show');
-        })
-        .catch(function() { alert('获取订单信息失败'); });
+function cancelEdit(orderId) {
+    var row = document.getElementById('order-row-' + orderId);
+    var orig = originalValues[orderId];
+    if (!orig) { location.reload(); return; }
+
+    var customerCell = row.querySelector('.customer-cell');
+    var productCell = row.querySelector('.product-cell');
+    var amountCell = row.querySelector('.amount-cell');
+    var statusCell = row.querySelector('.status-cell');
+    var editBtn = document.getElementById('edit-btn-' + orderId);
+
+    // 恢复原始值
+    customerCell.innerHTML = '<strong>' + orig.customer + '</strong>';
+    productCell.textContent = orig.product;
+    amountCell.innerHTML = '<span class="amount-text">' + orig.amount + '</span>';
+    statusCell.innerHTML = '<span class="status-badge status-' + orig.status + '">' + orig.status + '</span>';
+
+    // 恢复删除按钮，移除取消按钮
+    var deleteForm = row.querySelector('.inline-delete-form');
+    var cancelBtn = document.getElementById('cancel-btn-' + orderId);
+    if (cancelBtn) cancelBtn.remove();
+    if (deleteForm) {
+        deleteForm.style.display = 'inline';
+    }
+
+    row.classList.remove('edit-row');
+    editBtn.textContent = '编辑';
+    editBtn.className = 'action-link btn-edit';
+    editBtn.onclick = function() { startEdit(orderId); };
+
+    delete originalValues[orderId];
+    if (editingId === orderId) editingId = null;
 }
 
-// 编辑订单 - 提交修改
-function submitEdit() {
-    var form = document.getElementById('editForm');
-    var fd = new FormData(form);
-    var orderId = document.getElementById('editOrderIdInput').value;
+function saveEdit(orderId) {
+    var customer = document.getElementById('edit-customer-' + orderId).value.trim();
+    var product = document.getElementById('edit-product-' + orderId).value.trim();
+
+    if (!customer || !product) {
+        alert('提单人员和商品不能为空');
+        return;
+    }
+
+    var fd = new FormData();
+    fd.append('customer', customer);
+    fd.append('product', product);
+
+    if (userLevel === '管理员') {
+        var amount = document.getElementById('edit-amount-' + orderId).value;
+        var status = document.getElementById('edit-status-' + orderId).value;
+        fd.append('amount', amount);
+        fd.append('status', status);
+    }
 
     fetch('/main/api_edit/' + orderId, { method: 'POST', body: fd })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.success) {
-                $('#editModal').modal('hide');
                 location.reload();
             } else {
-                alert(data.error || '编辑失败');
+                alert(data.error || '保存失败');
             }
         })
         .catch(function() { alert('网络错误'); });
