@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}被驳回商品{% endblock %}
+
+{% block content %}
+<style>
+    .reject-container {
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-radius: 12px;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+    }
+
+    .page-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+        margin: 0;
+    }
+
+    .deadline-note {
+        font-size: 13px;
+        color: #e65100;
+        background: #fff3e0;
+        padding: 8px 16px;
+        border-radius: 6px;
+        display: inline-block;
+    }
+
+    .table-card {
+        background: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        border: none;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table thead th {
+        background-color: #fcfcfc;
+        border-bottom: 2px solid #eee;
+        color: #666;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        padding: 15px;
+    }
+
+    .table tbody td {
+        padding: 15px;
+        vertical-align: middle;
+        color: #444;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .price-text {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .action-link {
+        text-decoration: none;
+        font-size: 13px;
+        margin: 0 5px;
+        transition: color 0.2s;
+        border: none;
+        background: none;
+        cursor: pointer;
+        padding: 0;
+    }
+    .btn-resubmit { color: #2f9e44; font-weight:600; }
+    .action-link:hover { text-decoration: underline; }
+
+    .edit-input {
+        font-size: 13px;
+        height: 32px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .edit-row td {
+        background-color: #fffde7 !important;
+    }
+</style>
+
+<div class="reject-container">
+    <div class="page-header">
+        <div>
+            <h2 class="page-title">被驳回商品</h2>
+            <div class="deadline-note">⏰ 可在驳回后 {{ deadline_days }} 天内修改商品名、单价、总量重新提交审核，超时自动标记为失效</div>
+        </div>
+    </div>
+
+    <div class="table-card">
+        <table class="table table-hover" id="rejectTable">
+            <thead>
+                <tr>
+                    <th>商品名称</th>
+                    <th>单价</th>
+                    <th>总量</th>
+                    <th>提交时间</th>
+                    <th style="text-align: center;">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr id="reject-row-{{ item.id }}" data-id="{{ item.id }}">
+                    <td class="product-cell"><strong>{{ item.product }}</strong></td>
+                    <td class="price-cell price-text">¥{{ "{:,.2f}".format(item.price) }}</td>
+                    <td class="total-cell">{{ item.total_qty }}</td>
+                    <td class="time-cell" style="color: #888; font-size: 14px;">{{ item.create_time }}</td>
+                    <td style="text-align: center;">
+                        <button class="action-link btn-resubmit" onclick="startResubmit({{ item.id }})" id="resubmit-btn-{{ item.id }}">修改并重新提交</button>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if items|length == 0 %}
+                <tr>
+                    <td colspan="5" style="text-align:center;color:#aaa;padding:30px;">暂无被驳回的商品</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+var editingId = null;
+var originalValues = {};
+
+function startResubmit(itemId) {
+    if (editingId && editingId !== itemId) cancelResubmit(itemId);
+
+    var row = document.getElementById('reject-row-' + itemId);
+    var productCell = row.querySelector('.product-cell');
+    var priceCell = row.querySelector('.price-cell');
+    var totalCell = row.querySelector('.total-cell');
+    var btn = document.getElementById('resubmit-btn-' + itemId);
+
+    originalValues[itemId] = {
+        product: productCell.textContent.trim(),
+        price: priceCell.textContent.trim(),
+        total: totalCell.textContent.trim()
+    };
+
+    var curPrice = originalValues[itemId].price.replace('¥', '').replace(/,/g, '').trim();
+
+    productCell.innerHTML = '<input type="text" class="edit-input" id="edit-product-' + itemId + '" value="' + originalValues[itemId].product + '">';
+    priceCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-price-' + itemId + '" value="' + curPrice + '">';
+    totalCell.innerHTML = '<input type="number" class="edit-input" id="edit-total-' + itemId + '" value="' + originalValues[itemId].total + '" style="width:80px;">';
+
+    row.classList.add('edit-row');
+    btn.textContent = '提交审核';
+    btn.className = 'action-link btn-resubmit';
+    btn.onclick = function() { saveResubmit(itemId); };
+    editingId = itemId;
+}
+
+function cancelResubmit(itemId) {
+    var row = document.getElementById('reject-row-' + itemId);
+    var orig = originalValues[itemId];
+    var productCell = row.querySelector('.product-cell');
+    var priceCell = row.querySelector('.price-cell');
+    var totalCell = row.querySelector('.total-cell');
+    var btn = document.getElementById('resubmit-btn-' + itemId);
+
+    productCell.innerHTML = '<strong>' + orig.product + '</strong>';
+    priceCell.innerHTML = '<span class="price-text">' + orig.price + '</span>';
+    totalCell.textContent = orig.total;
+
+    row.classList.remove('edit-row');
+    btn.textContent = '修改并重新提交';
+    btn.className = 'action-link btn-resubmit';
+    btn.onclick = function() { startResubmit(itemId); };
+
+    delete originalValues[itemId];
+    if (editingId === itemId) editingId = null;
+}
+
+function saveResubmit(itemId) {
+    var product = document.getElementById('edit-product-' + itemId).value.trim();
+    var price = document.getElementById('edit-price-' + itemId).value;
+    var total = document.getElementById('edit-total-' + itemId).value;
+
+    if (!product || !price || !total) { alert('请填写完整信息'); return; }
+
+    var fd = new FormData();
+    fd.append('product', product);
+    fd.append('price', price);
+    fd.append('total_qty', total);
+
+    fetch('/inventory/rejected/resubmit/' + itemId, { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) { location.reload(); }
+            else { alert(data.error || '提交失败'); }
+        })
+        .catch(function() { alert('网络错误'); });
+}
+</script>
+{% endblock %}
