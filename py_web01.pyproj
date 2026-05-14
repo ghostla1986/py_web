@@ -43,8 +43,11 @@
     <Compile Include="utils\db.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="utils\regions.py" />
+    <Compile Include="utils\__init__.py" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="py_web01\schema_inventory.sql" />
     <Content Include="py_web01\static\css\bootstrap-theme.css" />
     <Content Include="py_web01\static\css\bootstrap-theme.css.map" />
     <Content Include="py_web01\static\css\bootstrap-theme.min.css" />
