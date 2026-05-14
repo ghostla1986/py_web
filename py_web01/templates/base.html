@@ -122,9 +122,14 @@
             <a href="/main/ship_list" class="nav-item {% if request.path.startswith('/main/ship') %}active{% endif %}">
                 <span class="nav-icon">🚚</span> 物流管理
             </a>
-            <a href="/inventory/list" class="nav-item {% if request.path.startswith('/inventory') %}active{% endif %}">
+            <a href="/inventory/list" class="nav-item {% if request.path.startswith('/inventory') and not request.path.startswith('/inventory/audit') %}active{% endif %}">
                 <span class="nav-icon">📦</span> 库存管理
             </a>
+            {% if session.get('user_level') == '管理员' %}
+            <a href="/inventory/audit" class="nav-item" style="padding-left:44px;font-size:14px;{% if request.path.startswith('/inventory/audit') %}color:#38bdf8;border-left-color:#38bdf8;background:#334155;{% endif %}">
+                <span style="margin-right:8px;">▸</span> 商品审核
+            </a>
+            {% endif %}
             {% endif %}
         </nav>
         <div class="sidebar-footer">{{ session.get('user_name', '') }}</div>

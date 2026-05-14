@@ -13,8 +13,9 @@ def inventory_list():
     user_level = session.get('user_level', '')
     if user_level not in ('管理员', '物流仓管员', '物流专员'):
         return redirect('/main/list')
+    # 库存列表只显示已审核通过的商品
     rows = fetch_all(
-        "SELECT id, product, price, total_qty, outbound_qty, remaining_qty FROM inventory ORDER BY id"
+        "SELECT id, product, price, total_qty, outbound_qty, remaining_qty, audit_status FROM inventory WHERE audit_status='已通过' ORDER BY id"
     )
     items = []
     for r in rows:
@@ -48,9 +49,12 @@ def create_item():
         price = float(price_str)
         total_qty = int(total_str)
 
+        # 管理员直接通过，仓管员需要审核
+        audit_status = '已通过' if user_level == '管理员' else '待审核'
+
         execute(
-            "INSERT INTO inventory (product, price, total_qty, outbound_qty, remaining_qty) VALUES (%s, %s, %s, 0, %s)",
-            (product, price, total_qty, total_qty)
+            "INSERT INTO inventory (product, price, total_qty, outbound_qty, remaining_qty, audit_status) VALUES (%s, %s, %s, 0, %s, %s)",
+            (product, price, total_qty, total_qty, audit_status)
         )
         return redirect('/inventory/list')
     except ValueError:
@@ -133,6 +137,7 @@ def get_item(item_id):
 
 @inv.route('/inventory/api_create', methods=["POST"])
 def api_create_item():
+    user_level = session.get('user_level', '')
     try:
         product = request.form.get("product")
         price_str = request.form.get("price")
@@ -144,9 +149,11 @@ def api_create_item():
         price = float(price_str)
         total_qty = int(total_str)
 
+        audit_status = '已通过' if user_level == '管理员' else '待审核'
+
         new_id = execute(
-            "INSERT INTO inventory (product, price, total_qty, outbound_qty, remaining_qty) VALUES (%s, %s, %s, 0, %s)",
-            (product, price, total_qty, total_qty)
+            "INSERT INTO inventory (product, price, total_qty, outbound_qty, remaining_qty, audit_status) VALUES (%s, %s, %s, 0, %s, %s)",
+            (product, price, total_qty, total_qty, audit_status)
         )
         return jsonify({"success": True, "id": new_id})
     except ValueError:
@@ -182,6 +189,45 @@ def api_edit_item(item_id):
     except Exception as e:
         print(f"Error updating inventory item: {e}")
         return jsonify({"error": "编辑失败"}), 500
+
+
+# ========== 商品审核（仓管员添加后管理员审批） ==========
+
+@inv.route('/inventory/audit', methods=["GET"])
+def audit_items():
+    if session.get('user_level') != '管理员':
+        return redirect('/inventory/list')
+    rows = fetch_all(
+        "SELECT id, product, price, total_qty, outbound_qty, remaining_qty, create_time FROM inventory WHERE audit_status='待审核' ORDER BY create_time ASC"
+    )
+    items = []
+    for r in rows:
+        items.append({
+            "id": r[0],
+            "product": r[1],
+            "price": float(r[2]),
+            "total_qty": r[3],
+            "outbound_qty": r[4],
+            "remaining_qty": r[5],
+            "create_time": r[6].strftime("%Y-%m-%d %H:%M:%S") if r[6] else ""
+        })
+    return render_template("inventory/audit.html", items=items)
+
+
+@inv.route('/inventory/audit/approve/<int:item_id>', methods=["POST"])
+def audit_approve(item_id):
+    if session.get('user_level') != '管理员':
+        return jsonify({"error": "无权限"}), 403
+    execute("UPDATE inventory SET audit_status='已通过' WHERE id=%s AND audit_status='待审核'", (item_id,))
+    return jsonify({"success": True})
+
+
+@inv.route('/inventory/audit/reject/<int:item_id>', methods=["POST"])
+def audit_reject(item_id):
+    if session.get('user_level') != '管理员':
+        return jsonify({"error": "无权限"}), 403
+    execute("UPDATE inventory SET audit_status='已驳回' WHERE id=%s AND audit_status='待审核'", (item_id,))
+    return jsonify({"success": True})
 
 
 @inv.route('/inventory/api_warehouse_edit/<int:item_id>', methods=["POST"])
