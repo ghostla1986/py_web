@@ -249,6 +249,32 @@ def audit_reject(item_id):
     return jsonify({"success": True, "rejected_at": now})
 
 
+# ========== 仓管员：待审批商品 ==========
+
+@inv.route('/inventory/pending', methods=["GET"])
+def pending_items():
+    user_level = session.get('user_level', '')
+    if user_level not in ('物流仓管员', '物流专员'):
+        return redirect('/inventory/list')
+
+    user_name = session.get('user_name', '')
+    rows = fetch_all(
+        "SELECT id, product, price, total_qty, create_time FROM inventory "
+        "WHERE audit_status='待审核' AND submitted_by=%s ORDER BY create_time DESC",
+        (user_name,)
+    )
+    items = []
+    for r in rows:
+        items.append({
+            "id": r[0],
+            "product": r[1],
+            "price": float(r[2]),
+            "total_qty": r[3],
+            "create_time": r[4].strftime("%Y-%m-%d %H:%M:%S") if r[4] else ""
+        })
+    return render_template("inventory/pending.html", items=items)
+
+
 # ========== 仓管员：被驳回商品管理 ==========
 
 @inv.route('/inventory/rejected', methods=["GET"])

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}待审批商品{% endblock %}
+
+{% block content %}
+<style>
+    .pending-container {
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-radius: 12px;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+    }
+
+    .page-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+        margin: 0;
+    }
+
+    .table-card {
+        background: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        border: none;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table thead th {
+        background-color: #fcfcfc;
+        border-bottom: 2px solid #eee;
+        color: #666;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        padding: 15px;
+    }
+
+    .table tbody td {
+        padding: 15px;
+        vertical-align: middle;
+        color: #444;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .price-text {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .status-badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .status-待审批 {
+        background-color: #fff3e0;
+        color: #e65100;
+    }
+</style>
+
+<div class="pending-container">
+    <div class="page-header">
+        <h2 class="page-title">待审批商品</h2>
+    </div>
+
+    <div class="table-card">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>商品名称</th>
+                    <th>单价</th>
+                    <th>总数量</th>
+                    <th>提交时间</th>
+                    <th>状态</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td><strong>{{ item.product }}</strong></td>
+                    <td class="price-text">¥{{ "{:,.2f}".format(item.price) }}</td>
+                    <td>{{ item.total_qty }}</td>
+                    <td style="color: #888; font-size: 14px;">{{ item.create_time }}</td>
+                    <td><span class="status-badge status-待审批">待审批</span></td>
+                </tr>
+                {% endfor %}
+                {% if items|length == 0 %}
+                <tr>
+                    <td colspan="5" style="text-align:center;color:#aaa;padding:30px;">暂无待审批的商品</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

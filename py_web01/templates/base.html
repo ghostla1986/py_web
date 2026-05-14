@@ -132,6 +132,9 @@
             </a>
             {% endif %}
             {% if ul in ('物流仓管员', '物流专员') %}
+            <a href="/inventory/pending" class="nav-item" style="padding-left:44px;font-size:14px;{% if request.path.startswith('/inventory/pending') %}color:#38bdf8;border-left-color:#38bdf8;background:#334155;{% endif %}">
+                <span style="margin-right:8px;">▸</span> 待审批商品
+            </a>
             <a href="/inventory/rejected" class="nav-item" style="padding-left:44px;font-size:14px;{% if request.path.startswith('/inventory/rejected') %}color:#38bdf8;border-left-color:#38bdf8;background:#334155;{% endif %}">
                 <span style="margin-right:8px;">▸</span> 被驳回商品
             </a>
