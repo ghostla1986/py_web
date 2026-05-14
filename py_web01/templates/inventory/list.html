@@ -81,6 +81,7 @@
     }
     .btn-edit { color: #4dabf7; }
     .btn-delete { color: #ff6b6b; }
+    .btn-save { color: #2f9e44; }
     .action-link:hover { text-decoration: underline; }
 
     .inline-delete-form {
@@ -107,6 +108,20 @@
         border-radius: 3px;
         transition: width 0.3s;
     }
+
+    .edit-input {
+        font-size: 13px;
+        height: 32px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .edit-row td {
+        background-color: #fffde7 !important;
+    }
 </style>
 
 <div class="inventory-container">
@@ -118,47 +133,209 @@
     </div>
 
     <div class="table-card">
-        <table class="table table-hover">
+        <table class="table table-hover" id="inventoryTable">
             <thead>
                 <tr>
                     <th>序号</th>
                     <th>商品</th>
                     <th>价格</th>
                     <th>剩余数量</th>
-                    {% if session.get('user_level') == '管理员' %}
                     <th>出库数量</th>
                     <th>总量</th>
                     <th style="text-align: center;">操作</th>
-                    {% endif %}
                 </tr>
             </thead>
             <tbody>
                 {% for item in inventory %}
-                <tr>
-                    <td>{{ loop.index }}</td>
-                    <td><strong>{{ item.product }}</strong></td>
-                    <td class="price-text">¥{{ "{:,.2f}".format(item.price) }}</td>
-                    <td>
+                <tr id="item-row-{{ item.id }}" data-id="{{ item.id }}">
+                    <td class="index-cell">{{ loop.index }}</td>
+                    <td class="product-cell"><strong>{{ item.product }}</strong></td>
+                    <td class="price-cell price-text">¥{{ "{:,.2f}".format(item.price) }}</td>
+                    <td class="remaining-cell">
                         <span class="quantity-text {% if item.remaining_qty <= 10 %}quantity-low{% endif %}">{{ item.remaining_qty }}</span>
                         <div class="stock-bar">
                             <div class="stock-bar-fill" style="width: {{ (item.remaining_qty / item.total_qty * 100) if item.total_qty > 0 else 0 }}%; background-color: {% if item.remaining_qty <= 10 %}#e03131{% elif item.remaining_qty <= 50 %}#f9a825{% else %}#2f9e44{% endif %};"></div>
                         </div>
                     </td>
-                    {% if session.get('user_level') == '管理员' %}
-                    <td class="quantity-text" style="text-align:center;">{{ item.outbound_qty }}</td>
-                    <td class="quantity-text" style="text-align:center;">{{ item.total_qty }}</td>
+                    <td class="outbound-cell quantity-text" style="text-align:center;">{{ item.outbound_qty }}</td>
+                    <td class="total-cell quantity-text" style="text-align:center;">{{ item.total_qty }}</td>
                     <td style="text-align: center;">
-                        <a href="/inventory/edit/{{ item.id }}" class="action-link btn-edit">编辑</a>
+                        {% set user_level = session.get('user_level', '') %}
+                        {% if user_level == '管理员' %}
+                        <button class="action-link btn-edit" onclick="startEditAdmin({{ item.id }})" id="edit-btn-{{ item.id }}">编辑</button>
                         <span style="color: #ddd;">|</span>
                         <form class="inline-delete-form" method="post" action="/inventory/delete/{{ item.id }}" onsubmit="return confirm('确定删除商品 #{{ item.id }} 吗？')">
                             <button type="submit" class="action-link btn-delete">删除</button>
                         </form>
+                        {% elif user_level in ('物流仓管员', '物流专员') %}
+                        <button class="action-link btn-edit" onclick="startEditWarehouser({{ item.id }})" id="edit-btn-{{ item.id }}">编辑</button>
+                        {% endif %}
                     </td>
-                    {% endif %}
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+
+<script>
+var editingId = null;
+var userLevel = '{{ session.get("user_level", "") }}';
+var originalValues = {};
+
+/* ======================= 管理员编辑 ======================= */
+function startEditAdmin(itemId) {
+    if (editingId && editingId !== itemId) cancelEdit(itemId);
+
+    var row = document.getElementById('item-row-' + itemId);
+    var productCell = row.querySelector('.product-cell');
+    var priceCell = row.querySelector('.price-cell');
+    var totalCell = row.querySelector('.total-cell');
+    var outboundCell = row.querySelector('.outbound-cell');
+    var editBtn = document.getElementById('edit-btn-' + itemId);
+
+    originalValues[itemId] = {
+        product: productCell.textContent.trim(),
+        price: priceCell.textContent.trim(),
+        priceVal: '',
+        total: totalCell.textContent.trim(),
+        outbound: outboundCell.textContent.trim()
+    };
+
+    var curProduct = originalValues[itemId].product;
+    var curPrice = originalValues[itemId].price.replace('¥', '').replace(/,/g, '').trim();
+    var curTotal = originalValues[itemId].total;
+    var curOutbound = originalValues[itemId].outbound;
+    originalValues[itemId].priceVal = curPrice;
+
+    productCell.innerHTML = '<input type="text" class="edit-input" id="edit-product-' + itemId + '" value="' + curProduct + '">';
+    priceCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-price-' + itemId + '" value="' + curPrice + '">';
+    totalCell.innerHTML = '<input type="number" class="edit-input" id="edit-total-' + itemId + '" value="' + curTotal + '" style="width:80px;">';
+    outboundCell.innerHTML = '<input type="number" class="edit-input" id="edit-outbound-' + itemId + '" value="' + curOutbound + '" style="width:80px;">';
+
+    row.classList.add('edit-row');
+    editBtn.textContent = '保存';
+    editBtn.className = 'action-link btn-save';
+    editBtn.onclick = function() { saveEditAdmin(itemId); };
+    editingId = itemId;
+}
+
+function saveEditAdmin(itemId) {
+    var product = document.getElementById('edit-product-' + itemId).value.trim();
+    var price = document.getElementById('edit-price-' + itemId).value;
+    var total = document.getElementById('edit-total-' + itemId).value;
+    var outbound = document.getElementById('edit-outbound-' + itemId).value;
+
+    if (!product || !price || !total) { alert('请填写完整信息'); return; }
+
+    var remaining = parseInt(total) - parseInt(outbound);
+
+    var fd = new FormData();
+    fd.append('product', product);
+    fd.append('price', price);
+    fd.append('total_qty', total);
+    fd.append('outbound_qty', outbound);
+
+    fetch('/inventory/api_edit/' + itemId, { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) { location.reload(); }
+            else { alert(data.error || '保存失败'); }
+        })
+        .catch(function() { alert('网络错误'); });
+}
+
+/* ======================= 物流仓管员编辑 ======================= */
+function startEditWarehouser(itemId) {
+    if (editingId && editingId !== itemId) cancelEdit(itemId);
+
+    var row = document.getElementById('item-row-' + itemId);
+    var priceCell = row.querySelector('.price-cell');
+    var totalCell = row.querySelector('.total-cell');
+    var editBtn = document.getElementById('edit-btn-' + itemId);
+
+    var curPrice = priceCell.textContent.trim();
+    var curTotal = totalCell.textContent.trim();
+
+    originalValues[itemId] = {
+        price: curPrice,
+        priceVal: curPrice.replace('¥', '').replace(/,/g, '').trim(),
+        total: curTotal
+    };
+
+    // 只把价格和总量变成输入框，商品/出库/剩余保持原样
+    var priceVal = originalValues[itemId].priceVal;
+    priceCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-price-' + itemId + '" value="' + priceVal + '">';
+    totalCell.innerHTML = '<input type="number" class="edit-input" id="edit-total-' + itemId + '" value="' + curTotal + '" style="width:80px;">';
+
+    row.classList.add('edit-row');
+    editBtn.textContent = '保存';
+    editBtn.className = 'action-link btn-save';
+    editBtn.onclick = function() { saveEditWarehouser(itemId); };
+    editingId = itemId;
+}
+
+function saveEditWarehouser(itemId) {
+    var newPrice = parseFloat(document.getElementById('edit-price-' + itemId).value);
+    var newTotal = parseInt(document.getElementById('edit-total-' + itemId).value);
+    var orig = originalValues[itemId];
+    var oldPrice = parseFloat(orig.priceVal);
+    var oldTotal = parseInt(orig.total);
+
+    if (isNaN(newPrice) || isNaN(newTotal)) { alert('价格和总量必须为有效数字'); return; }
+
+    // 校验：单价只能增不能减
+    if (newPrice < oldPrice) { alert('单价只能增加，不能减少'); return; }
+    // 校验：总数量只能增不能减
+    if (newTotal < oldTotal) { alert('总数量只能增加，不能减少'); return; }
+
+    var fd = new FormData();
+    fd.append('price', newPrice);
+    fd.append('total_qty', newTotal);
+
+    fetch('/inventory/api_warehouse_edit/' + itemId, { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) { location.reload(); }
+            else { alert(data.error || '保存失败'); }
+        })
+        .catch(function() { alert('网络错误'); });
+}
+
+/* ======================= 取消编辑（通用） ======================= */
+function cancelEdit(itemId) {
+    var row = document.getElementById('item-row-' + itemId);
+    var orig = originalValues[itemId];
+    if (!orig) { location.reload(); return; }
+
+    var productCell = row.querySelector('.product-cell');
+    var priceCell = row.querySelector('.price-cell');
+    var totalCell = row.querySelector('.total-cell');
+    var outboundCell = row.querySelector('.outbound-cell');
+    var remainingCell = row.querySelector('.remaining-cell');
+    var editBtn = document.getElementById('edit-btn-' + itemId);
+
+    // 恢复原始值
+    if (orig.product !== undefined) {
+        productCell.innerHTML = '<strong>' + orig.product + '</strong>';
+    }
+    priceCell.innerHTML = '<span class="price-text">' + orig.price + '</span>';
+    totalCell.textContent = orig.total;
+
+    if (orig.outbound !== undefined) {
+        outboundCell.innerHTML = '<span class="quantity-text" style="text-align:center;">' + orig.outbound + '</span>';
+    }
+
+    row.classList.remove('edit-row');
+    editBtn.textContent = '编辑';
+    editBtn.className = 'action-link btn-edit';
+    editBtn.onclick = function() {
+        if (userLevel === '管理员') startEditAdmin(itemId);
+        else startEditWarehouser(itemId);
+    };
+
+    delete originalValues[itemId];
+    if (editingId === itemId) editingId = null;
+}
+</script>
 {% endblock %}

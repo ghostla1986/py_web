@@ -179,3 +179,50 @@ def api_edit_item(item_id):
     except Exception as e:
         print(f"Error updating inventory item: {e}")
         return jsonify({"error": "编辑失败"}), 500
+
+
+@inv.route('/inventory/api_warehouse_edit/<int:item_id>', methods=["POST"])
+def api_warehouse_edit_item(item_id):
+    user_level = session.get('user_level', '')
+    if user_level not in ('物流仓管员', '物流专员'):
+        return jsonify({"error": "无权限"}), 403
+
+    try:
+        price_str = request.form.get("price")
+        total_str = request.form.get("total_qty")
+
+        if not price_str or not total_str:
+            return jsonify({"error": "缺少必要字段"}), 400
+
+        new_price = float(price_str)
+        new_total = int(total_str)
+
+        # 读取当前值做校验
+        row = fetch_one(
+            "SELECT price, total_qty FROM inventory WHERE id=%s",
+            (item_id,)
+        )
+        if not row:
+            return jsonify({"error": "商品不存在"}), 404
+
+        old_price = float(row[0])
+        old_total = int(row[1])
+
+        # 单价只能增不能减
+        if new_price < old_price:
+            return jsonify({"error": "单价只能增加，不能减少"}), 400
+
+        # 总数量只能增不能减
+        if new_total < old_total:
+            return jsonify({"error": "总数量只能增加，不能减少"}), 400
+
+        execute(
+            "UPDATE inventory SET price=%s, total_qty=%s WHERE id=%s",
+            (new_price, new_total, item_id)
+        )
+        return jsonify({"success": True})
+    except ValueError:
+        return jsonify({"error": "格式错误"}), 400
+    except Exception as e:
+        print(f"Error updating inventory item by warehouser: {e}")
+        return jsonify({"error": "编辑失败"}), 500
