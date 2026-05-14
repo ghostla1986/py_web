@@ -127,7 +127,7 @@
                 <span class="nav-icon">📦</span> 库存管理
             </a>
             {% if ul == '管理员' %}
-            <a href="/inventory/audit" class="nav-item" style="padding-left:44px;font-size:14px;{% if request.path.startswith('/inventory/audit') %}color:#38bdf8;border-left-color:#38bdf8;background:#334155;{% endif %}">
+            <a href="/inventory/pending" class="nav-item" style="padding-left:44px;font-size:14px;{% if request.path.startswith('/inventory/pending') %}color:#38bdf8;border-left-color:#38bdf8;background:#334155;{% endif %}">
                 <span style="margin-right:8px;">▸</span> 商品审核
             </a>
             {% endif %}

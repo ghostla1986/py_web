@@ -210,23 +210,8 @@ def api_edit_item(item_id):
 @inv.route('/inventory/audit', methods=["GET"])
 def audit_items():
     if session.get('user_level') != '管理员':
-        return redirect('/inventory/list')
-    rows = fetch_all(
-        "SELECT id, product, price, total_qty, outbound_qty, remaining_qty, submitted_by, create_time FROM inventory WHERE audit_status='待审核' ORDER BY create_time ASC"
-    )
-    items = []
-    for r in rows:
-        items.append({
-            "id": r[0],
-            "product": r[1],
-            "price": float(r[2]),
-            "total_qty": r[3],
-            "outbound_qty": r[4],
-            "remaining_qty": r[5],
-            "submitted_by": r[6] or '',
-            "create_time": r[7].strftime("%Y-%m-%d %H:%M:%S") if r[7] else ""
-        })
-    return render_template("inventory/audit.html", items=items)
+        return redirect('/inventory/pending')
+    return redirect('/inventory/pending')
 
 
 @inv.route('/inventory/audit/approve/<int:item_id>', methods=["POST"])
@@ -249,20 +234,74 @@ def audit_reject(item_id):
     return jsonify({"success": True, "rejected_at": now})
 
 
-# ========== 仓管员：待审批商品 ==========
+# ========== 仓管员撤回待审核商品 ==========
+
+@inv.route('/inventory/pending/withdraw/<int:item_id>', methods=["POST"])
+def withdraw_pending(item_id):
+    user_level = session.get('user_level', '')
+    user_name = session.get('user_name', '')
+    if user_level not in ('物流仓管员', '物流专员'):
+        return jsonify({"error": "无权限"}), 403
+
+    row = fetch_one(
+        "SELECT id, submitted_by FROM inventory WHERE id=%s AND audit_status='待审核'",
+        (item_id,)
+    )
+    if not row:
+        return jsonify({"error": "商品不存在或状态异常"}), 404
+    if row[1] != user_name:
+        return jsonify({"error": "只能撤回自己提交的商品"}), 403
+
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    execute(
+        "UPDATE inventory SET audit_status='已撤回', reject_time=%s WHERE id=%s AND audit_status='待审核'",
+        (now, item_id)
+    )
+    return jsonify({"success": True})
+
+
+# ========== 仓管员：删除自己的撤回/驳回/失效商品 ==========
+
+@inv.route('/inventory/rejected/delete/<int:item_id>', methods=["POST"])
+def delete_rejected(item_id):
+    user_level = session.get('user_level', '')
+    user_name = session.get('user_name', '')
+    if user_level not in ('物流仓管员', '物流专员'):
+        return jsonify({"error": "无权限"}), 403
+
+    row = fetch_one(
+        "SELECT id, submitted_by FROM inventory WHERE id=%s AND audit_status IN ('已驳回','已撤回','已失效')",
+        (item_id,)
+    )
+    if not row:
+        return jsonify({"error": "商品不存在或状态异常"}), 404
+    if row[1] != user_name:
+        return jsonify({"error": "只能删除自己的商品"}), 403
+
+    execute("DELETE FROM inventory WHERE id=%s", (item_id,))
+    return jsonify({"success": True})
+
+
+# ========== 待审批商品（管理员+仓管员通用） ==========
 
 @inv.route('/inventory/pending', methods=["GET"])
 def pending_items():
     user_level = session.get('user_level', '')
-    if user_level not in ('物流仓管员', '物流专员'):
+    if user_level not in ('管理员', '物流仓管员', '物流专员'):
         return redirect('/inventory/list')
 
     user_name = session.get('user_name', '')
-    rows = fetch_all(
-        "SELECT id, product, price, total_qty, create_time FROM inventory "
-        "WHERE audit_status='待审核' AND submitted_by=%s ORDER BY create_time DESC",
-        (user_name,)
-    )
+
+    if user_level == '管理员':
+        rows = fetch_all(
+            "SELECT id, product, price, total_qty, outbound_qty, remaining_qty, submitted_by, create_time FROM inventory WHERE audit_status='待审核' ORDER BY create_time ASC"
+        )
+    else:
+        rows = fetch_all(
+            "SELECT id, product, price, total_qty, outbound_qty, remaining_qty, submitted_by, create_time FROM inventory WHERE audit_status='待审核' AND submitted_by=%s ORDER BY create_time DESC",
+            (user_name,)
+        )
+
     items = []
     for r in rows:
         items.append({
@@ -270,9 +309,12 @@ def pending_items():
             "product": r[1],
             "price": float(r[2]),
             "total_qty": r[3],
-            "create_time": r[4].strftime("%Y-%m-%d %H:%M:%S") if r[4] else ""
+            "outbound_qty": r[4],
+            "remaining_qty": r[5],
+            "submitted_by": r[6] or '',
+            "create_time": r[7].strftime("%Y-%m-%d %H:%M:%S") if r[7] else ""
         })
-    return render_template("inventory/pending.html", items=items)
+    return render_template("inventory/pending.html", items=items, user_level=user_level)
 
 
 # ========== 仓管员：被驳回商品管理 ==========
@@ -292,21 +334,27 @@ def rejected_items():
         (user_name, deadline)
     )
 
-    # 查询自己提交的、仍在有效期内的驳回商品
+    # 查询自己提交的、被驳回/被撤回/已失效的商品
     rows = fetch_all(
-        "SELECT id, product, price, total_qty, create_time FROM inventory "
-        "WHERE audit_status='已驳回' AND submitted_by=%s ORDER BY reject_time DESC",
+        "SELECT id, product, price, total_qty, audit_status, create_time, reject_time FROM inventory "
+        "WHERE audit_status IN ('已驳回','已撤回','已失效') AND submitted_by=%s ORDER BY reject_time DESC",
         (user_name,)
     )
     items = []
     now = datetime.now()
     for r in rows:
+        audit_st = r[4]
+        reject_t = r[6]
+        still_valid = (audit_st in ('已驳回', '已撤回') and reject_t and (now - reject_t).days < REJECT_DEADLINE_DAYS)
         items.append({
             "id": r[0],
             "product": r[1],
             "price": float(r[2]),
             "total_qty": r[3],
-            "create_time": r[4].strftime("%Y-%m-%d %H:%M:%S") if r[4] else ""
+            "audit_status": audit_st,
+            "can_edit": still_valid and audit_st == '已驳回',
+            "can_delete": True,
+            "create_time": r[5].strftime("%Y-%m-%d %H:%M:%S") if r[5] else ""
         })
     return render_template("inventory/rejected.html", items=items, deadline_days=REJECT_DEADLINE_DAYS)
 

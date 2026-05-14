@@ -68,6 +68,18 @@
         color: #2c3e50;
     }
 
+    .status-badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+        display: inline-block;
+    }
+
+    .status-已驳回 { background-color: #fce4ec; color: #c62828; }
+    .status-已撤回 { background-color: #fff3e0; color: #e65100; }
+    .status-已失效 { background-color: #f5f5f5; color: #9e9e9e; }
+
     .action-link {
         text-decoration: none;
         font-size: 13px;
@@ -79,6 +91,7 @@
         padding: 0;
     }
     .btn-resubmit { color: #2f9e44; font-weight:600; }
+    .btn-delete { color: #e03131; }
     .action-link:hover { text-decoration: underline; }
 
     .edit-input {
@@ -100,17 +113,18 @@
     <div class="page-header">
         <div>
             <h2 class="page-title">被驳回商品</h2>
-            <div class="deadline-note">⏰ 可在驳回后 {{ deadline_days }} 天内修改商品名、单价、总量重新提交审核，超时自动标记为失效</div>
+            <div class="deadline-note">⏰ 被驳回的商品可在驳回后 {{ deadline_days }} 天内修改重提，超时自动失效；撤回商品可直接删除</div>
         </div>
     </div>
 
     <div class="table-card">
-        <table class="table table-hover" id="rejectTable">
+        <table class="table table-hover">
             <thead>
                 <tr>
                     <th>商品名称</th>
                     <th>单价</th>
                     <th>总量</th>
+                    <th>状态</th>
                     <th>提交时间</th>
                     <th style="text-align: center;">操作</th>
                 </tr>
@@ -121,15 +135,30 @@
                     <td class="product-cell"><strong>{{ item.product }}</strong></td>
                     <td class="price-cell price-text">¥{{ "{:,.2f}".format(item.price) }}</td>
                     <td class="total-cell">{{ item.total_qty }}</td>
+                    <td>
+                        {% if item.audit_status == '已驳回' %}
+                        <span class="status-badge status-已驳回">已驳回</span>
+                        {% elif item.audit_status == '已撤回' %}
+                        <span class="status-badge status-已撤回">撤回商品</span>
+                        {% else %}
+                        <span class="status-badge status-已失效">已失效</span>
+                        {% endif %}
+                    </td>
                     <td class="time-cell" style="color: #888; font-size: 14px;">{{ item.create_time }}</td>
                     <td style="text-align: center;">
+                        {% if item.can_edit %}
                         <button class="action-link btn-resubmit" onclick="startResubmit({{ item.id }})" id="resubmit-btn-{{ item.id }}">修改并重新提交</button>
+                        <span style="color: #ddd;">|</span>
+                        {% endif %}
+                        {% if item.can_delete %}
+                        <button class="action-link btn-delete" onclick="deleteItem({{ item.id }})">删除</button>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
                 {% if items|length == 0 %}
                 <tr>
-                    <td colspan="5" style="text-align:center;color:#aaa;padding:30px;">暂无被驳回的商品</td>
+                    <td colspan="6" style="text-align:center;color:#aaa;padding:30px;">暂无记录</td>
                 </tr>
                 {% endif %}
             </tbody>
@@ -138,12 +167,9 @@
 </div>
 
 <script>
-var editingId = null;
 var originalValues = {};
 
 function startResubmit(itemId) {
-    if (editingId && editingId !== itemId) cancelResubmit(itemId);
-
     var row = document.getElementById('reject-row-' + itemId);
     var productCell = row.querySelector('.product-cell');
     var priceCell = row.querySelector('.price-cell');
@@ -166,28 +192,6 @@ function startResubmit(itemId) {
     btn.textContent = '提交审核';
     btn.className = 'action-link btn-resubmit';
     btn.onclick = function() { saveResubmit(itemId); };
-    editingId = itemId;
-}
-
-function cancelResubmit(itemId) {
-    var row = document.getElementById('reject-row-' + itemId);
-    var orig = originalValues[itemId];
-    var productCell = row.querySelector('.product-cell');
-    var priceCell = row.querySelector('.price-cell');
-    var totalCell = row.querySelector('.total-cell');
-    var btn = document.getElementById('resubmit-btn-' + itemId);
-
-    productCell.innerHTML = '<strong>' + orig.product + '</strong>';
-    priceCell.innerHTML = '<span class="price-text">' + orig.price + '</span>';
-    totalCell.textContent = orig.total;
-
-    row.classList.remove('edit-row');
-    btn.textContent = '修改并重新提交';
-    btn.className = 'action-link btn-resubmit';
-    btn.onclick = function() { startResubmit(itemId); };
-
-    delete originalValues[itemId];
-    if (editingId === itemId) editingId = null;
 }
 
 function saveResubmit(itemId) {
@@ -207,6 +211,17 @@ function saveResubmit(itemId) {
         .then(function(data) {
             if (data.success) { location.reload(); }
             else { alert(data.error || '提交失败'); }
+        })
+        .catch(function() { alert('网络错误'); });
+}
+
+function deleteItem(itemId) {
+    if (!confirm('确定删除该商品吗？删除后不可恢复。')) return;
+    fetch('/inventory/rejected/delete/' + itemId, { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) { location.reload(); }
+            else { alert(data.error || '删除失败'); }
         })
         .catch(function() { alert('网络错误'); });
 }

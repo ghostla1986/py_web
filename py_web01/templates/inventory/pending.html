@@ -70,6 +70,21 @@
         background-color: #fff3e0;
         color: #e65100;
     }
+
+    .action-link {
+        text-decoration: none;
+        font-size: 13px;
+        margin: 0 5px;
+        transition: color 0.2s;
+        border: none;
+        background: none;
+        cursor: pointer;
+        padding: 0;
+    }
+    .btn-approve { color: #2f9e44; font-weight:600; }
+    .btn-reject { color: #e03131; font-weight:600; }
+    .btn-withdraw { color: #f9a825; font-weight:600; }
+    .action-link:hover { text-decoration: underline; }
 </style>
 
 <div class="pending-container">
@@ -84,8 +99,14 @@
                     <th>商品名称</th>
                     <th>单价</th>
                     <th>总数量</th>
+                    {% if user_level == '管理员' %}
+                    <th>提交人</th>
+                    {% endif %}
                     <th>提交时间</th>
                     <th>状态</th>
+                    {% if user_level in ('管理员', '物流仓管员', '物流专员') %}
+                    <th style="text-align: center;">操作</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -94,17 +115,64 @@
                     <td><strong>{{ item.product }}</strong></td>
                     <td class="price-text">¥{{ "{:,.2f}".format(item.price) }}</td>
                     <td>{{ item.total_qty }}</td>
+                    {% if user_level == '管理员' %}
+                    <td style="color: #888; font-size: 13px;">{{ item.submitted_by }}</td>
+                    {% endif %}
                     <td style="color: #888; font-size: 14px;">{{ item.create_time }}</td>
                     <td><span class="status-badge status-待审批">待审批</span></td>
+                    <td style="text-align: center;">
+                        {% if user_level == '管理员' %}
+                        <button class="action-link btn-approve" onclick="approveItem({{ item.id }})">审核通过</button>
+                        <span style="color: #ddd;">|</span>
+                        <button class="action-link btn-reject" onclick="rejectItem({{ item.id }})">驳回</button>
+                        {% elif user_level in ('物流仓管员', '物流专员') %}
+                        <button class="action-link btn-withdraw" onclick="withdrawItem({{ item.id }})">撤回</button>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
                 {% if items|length == 0 %}
                 <tr>
-                    <td colspan="5" style="text-align:center;color:#aaa;padding:30px;">暂无待审批的商品</td>
+                    <td colspan="{% if user_level == '管理员' %}7{% else %}6{% endif %}" style="text-align:center;color:#aaa;padding:30px;">暂无待审批的商品</td>
                 </tr>
                 {% endif %}
             </tbody>
         </table>
     </div>
 </div>
+
+<script>
+var userLevel = '{{ user_level }}';
+
+function approveItem(itemId) {
+    fetch('/inventory/audit/approve/' + itemId, { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) { location.reload(); }
+            else { alert(data.error || '操作失败'); }
+        })
+        .catch(function() { alert('网络错误'); });
+}
+
+function rejectItem(itemId) {
+    fetch('/inventory/audit/reject/' + itemId, { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) { location.reload(); }
+            else { alert(data.error || '操作失败'); }
+        })
+        .catch(function() { alert('网络错误'); });
+}
+
+function withdrawItem(itemId) {
+    if (!confirm('确定撤回该商品吗？撤回后可在"被驳回商品"中查看和删除。')) return;
+    fetch('/inventory/pending/withdraw/' + itemId, { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) { location.reload(); }
+            else { alert(data.error || '操作失败'); }
+        })
+        .catch(function() { alert('网络错误'); });
+}
+</script>
 {% endblock %}
