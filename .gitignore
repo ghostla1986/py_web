@@ -205,3 +205,7 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+/.vs/py_web01.slnx/FileContentIndex/7f491606-bf94-49c2-acd9-ca85c26d72e7.vsidx
+/.vs/py_web01.slnx/FileContentIndex/91bc5e42-26df-4863-bb8c-1aa39662c811.vsidx
+/.vs/py_web01.slnx/FileContentIndex/99a99756-6b41-4150-aa40-d76dc1b947eb.vsidx
+/.gitignore
