@@ -3,6 +3,10 @@
   "WorkspaceRootPath": "E:\\vs\\py_web01\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{6340CB75-EDC6-4C31-863A-73B3AFF27DDF}|py_web01.pyproj|E:\\vs\\py_web01\\py_web01\\__init__.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{6340CB75-EDC6-4C31-863A-73B3AFF27DDF}|py_web01.pyproj|solutionrelative:py_web01\\__init__.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{6340CB75-EDC6-4C31-863A-73B3AFF27DDF}|py_web01.pyproj|E:\\vs\\py_web01\\py_web01\\templates\\base.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{6340CB75-EDC6-4C31-863A-73B3AFF27DDF}|py_web01.pyproj|solutionrelative:py_web01\\templates\\base.html||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
@@ -25,10 +29,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{6340CB75-EDC6-4C31-863A-73B3AFF27DDF}|py_web01.pyproj|E:\\vs\\py_web01\\py_web01\\views\\game.py||{8B382828-6202-11D1-8870-0000F87579D2}",
       "RelativeMoniker": "D:0:0:{6340CB75-EDC6-4C31-863A-73B3AFF27DDF}|py_web01.pyproj|solutionrelative:py_web01\\views\\game.py||{8B382828-6202-11D1-8870-0000F87579D2}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{6340CB75-EDC6-4C31-863A-73B3AFF27DDF}|py_web01.pyproj|E:\\vs\\py_web01\\py_web01\\__init__.py||{8B382828-6202-11D1-8870-0000F87579D2}",
-      "RelativeMoniker": "D:0:0:{6340CB75-EDC6-4C31-863A-73B3AFF27DDF}|py_web01.pyproj|solutionrelative:py_web01\\__init__.py||{8B382828-6202-11D1-8870-0000F87579D2}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{6340CB75-EDC6-4C31-863A-73B3AFF27DDF}|py_web01.pyproj|E:\\vs\\py_web01\\py_web01\\templates\\main.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
@@ -54,7 +54,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 10,
+          "SelectedChildIndex": 17,
           "Children": [
             {
               "$type": "Bookmark",
@@ -97,8 +97,12 @@
               "Name": "ST:131:0:{75188d03-9892-4ae2-abf1-207126247ce5}"
             },
             {
+              "$type": "Bookmark",
+              "Name": "ST:129:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "base.html",
               "DocumentMoniker": "E:\\vs\\py_web01\\py_web01\\templates\\base.html",
               "RelativeDocumentMoniker": "py_web01\\templates\\base.html",
@@ -111,7 +115,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
               "Title": "list.html",
               "DocumentMoniker": "E:\\vs\\py_web01\\py_web01\\templates\\orders\\list.html",
               "RelativeDocumentMoniker": "py_web01\\templates\\orders\\list.html",
@@ -123,7 +127,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "create.html",
               "DocumentMoniker": "E:\\vs\\py_web01\\py_web01\\templates\\orders\\create.html",
               "RelativeDocumentMoniker": "py_web01\\templates\\orders\\create.html",
@@ -135,7 +139,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 5,
               "Title": "db.py",
               "DocumentMoniker": "E:\\vs\\py_web01\\utils\\db.py",
               "RelativeDocumentMoniker": "utils\\db.py",
@@ -147,7 +151,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 6,
               "Title": "game.py",
               "DocumentMoniker": "E:\\vs\\py_web01\\py_web01\\views\\game.py",
               "RelativeDocumentMoniker": "py_web01\\views\\game.py",
@@ -159,7 +163,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 4,
               "Title": "main.py",
               "DocumentMoniker": "E:\\vs\\py_web01\\py_web01\\views\\main.py",
               "RelativeDocumentMoniker": "py_web01\\views\\main.py",
@@ -171,15 +175,16 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "__init__.py",
+              "DocumentIndex": 0,
+              "Title": "__init__.py (py_web01)",
               "DocumentMoniker": "E:\\vs\\py_web01\\py_web01\\__init__.py",
               "RelativeDocumentMoniker": "py_web01\\__init__.py",
               "ToolTip": "E:\\vs\\py_web01\\py_web01\\__init__.py",
               "RelativeToolTip": "py_web01\\__init__.py",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
-              "WhenOpened": "2026-02-10T11:57:23.041Z"
+              "WhenOpened": "2026-02-10T11:57:23.041Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
