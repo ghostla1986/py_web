@@ -184,6 +184,10 @@ cython_debug/
 # Visual Studio
 .vs/
 obj/
+*.pyproj.user
+settings.VisualStudio.json
+*.slnx
+*.pyproj
 
 # Visual Studio Code
 #  Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore 
