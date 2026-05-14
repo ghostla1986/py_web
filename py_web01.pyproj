@@ -71,7 +71,6 @@
     <Content Include="py_web01\templates\inventory\create.html" />
     <Content Include="py_web01\templates\inventory\edit.html" />
     <Content Include="py_web01\templates\inventory\list.html" />
-    <Content Include="py_web01\templates\main.html" />
     <Content Include="py_web01\templates\orders\create.html" />
     <Content Include="py_web01\templates\orders\list.html" />
     <Content Include="requirements.txt" />
