@@ -127,8 +127,9 @@
 <div class="inventory-container">
     <div class="page-header">
         <h2 class="page-title">库存管理</h2>
-        {% if session.get('user_level') == '管理员' %}
-        <a href="/inventory/create" class="btn btn-primary btn-create">+ 新建商品</a>
+        {% set ul = session.get('user_level', '') %}
+        {% if ul in ('管理员', '物流仓管员', '物流专员') %}
+        <a href="/inventory/create" class="btn btn-primary btn-create">+ 添加商品</a>
         {% endif %}
     </div>
 
@@ -160,14 +161,14 @@
                     <td class="outbound-cell quantity-text" style="text-align:center;">{{ item.outbound_qty }}</td>
                     <td class="total-cell quantity-text" style="text-align:center;">{{ item.total_qty }}</td>
                     <td style="text-align: center;">
-                        {% set user_level = session.get('user_level', '') %}
-                        {% if user_level == '管理员' %}
+                        {% set ul = session.get('user_level', '') %}
+                        {% if ul == '管理员' %}
                         <button class="action-link btn-edit" onclick="startEditAdmin({{ item.id }})" id="edit-btn-{{ item.id }}">编辑</button>
-                        <span style="color: #ddd;">|</span>
+                        <span class="action-sep" style="color: #ddd;">|</span>
                         <form class="inline-delete-form" method="post" action="/inventory/delete/{{ item.id }}" onsubmit="return confirm('确定删除商品 #{{ item.id }} 吗？')">
                             <button type="submit" class="action-link btn-delete">删除</button>
                         </form>
-                        {% elif user_level in ('物流仓管员', '物流专员') %}
+                        {% elif ul in ('物流仓管员', '物流专员') %}
                         <button class="action-link btn-edit" onclick="startEditWarehouser({{ item.id }})" id="edit-btn-{{ item.id }}">编辑</button>
                         {% endif %}
                     </td>
@@ -212,6 +213,24 @@ function startEditAdmin(itemId) {
     priceCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-price-' + itemId + '" value="' + curPrice + '">';
     totalCell.innerHTML = '<input type="number" class="edit-input" id="edit-total-' + itemId + '" value="' + curTotal + '" style="width:80px;">';
     outboundCell.innerHTML = '<input type="number" class="edit-input" id="edit-outbound-' + itemId + '" value="' + curOutbound + '" style="width:80px;">';
+
+    // 把删除替换成取消
+    var deleteForm = row.querySelector('.inline-delete-form');
+    var separator = row.querySelector('.action-sep');
+    if (deleteForm) {
+        deleteForm.style.display = 'none';
+        var cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'action-link btn-delete';
+        cancelBtn.textContent = '取消';
+        cancelBtn.id = 'cancel-btn-' + itemId;
+        cancelBtn.onclick = function() { cancelEdit(itemId); };
+        if (separator) {
+            separator.parentNode.insertBefore(cancelBtn, separator.nextSibling);
+        } else {
+            deleteForm.parentNode.appendChild(cancelBtn);
+        }
+    }
 
     row.classList.add('edit-row');
     editBtn.textContent = '保存';
@@ -267,6 +286,17 @@ function startEditWarehouser(itemId) {
     var priceVal = originalValues[itemId].priceVal;
     priceCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-price-' + itemId + '" value="' + priceVal + '">';
     totalCell.innerHTML = '<input type="number" class="edit-input" id="edit-total-' + itemId + '" value="' + curTotal + '" style="width:80px;">';
+
+    // 仓管员没有删除按钮，直接在操作列末尾加取消按钮
+    var actionCell = row.querySelector('td:last-child');
+    var cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'action-link btn-delete';
+    cancelBtn.textContent = '取消';
+    cancelBtn.id = 'cancel-btn-' + itemId;
+    cancelBtn.style.marginLeft = '10px';
+    cancelBtn.onclick = function() { cancelEdit(itemId); };
+    actionCell.appendChild(cancelBtn);
 
     row.classList.add('edit-row');
     editBtn.textContent = '保存';
@@ -324,6 +354,14 @@ function cancelEdit(itemId) {
 
     if (orig.outbound !== undefined) {
         outboundCell.innerHTML = '<span class="quantity-text" style="text-align:center;">' + orig.outbound + '</span>';
+    }
+
+    // 恢复删除按钮/移除取消按钮
+    var deleteForm = row.querySelector('.inline-delete-form');
+    var cancelBtn = document.getElementById('cancel-btn-' + itemId);
+    if (cancelBtn) cancelBtn.remove();
+    if (deleteForm) {
+        deleteForm.style.display = 'inline';
     }
 
     row.classList.remove('edit-row');

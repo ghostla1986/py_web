@@ -31,6 +31,9 @@ def inventory_list():
 
 @inv.route('/inventory/create', methods=["GET", "POST"])
 def create_item():
+    user_level = session.get('user_level', '')
+    if user_level not in ('管理员', '物流仓管员', '物流专员'):
+        return redirect('/inventory/list')
     if request.method == "GET":
         return render_template("inventory/create.html")
 
