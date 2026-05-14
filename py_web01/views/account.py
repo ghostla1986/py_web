@@ -23,6 +23,7 @@ def login():
 
 
 
-@ac.route('/lk',methods=["GET","POST"])
-def lk():
-    return "list"
+@ac.route('/logout',methods=["GET"])
+def logout():
+    session.clear()
+    return redirect('/login')
