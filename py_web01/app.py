@@ -14,4 +14,4 @@ CORS(app)
 
 if __name__ == '__main__':
     # host='0.0.0.0' 允许局域网内其他设备访问
-    app.run(host='0.0.0.0', port=43210)
+    app.run(host='0.0.0.0', port=43220)
