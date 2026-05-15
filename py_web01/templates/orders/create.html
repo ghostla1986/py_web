@@ -7,7 +7,7 @@
     <h2>新建订单 <a href="/main/list" class="btn btn-default pull-right">返回列表</a></h2>
     <form method="post" action="/main/create" style="max-width:500px;margin-top:30px;">
         <div class="form-group">
-            <label>提单人员</label>
+            <label>提单人</label>
             <input type="text" name="customer" class="form-control" value="{{ session.get('user_name', '') }}" readonly style="background:#f5f5f5;color:#666;">
         </div>
         <div class="form-group">

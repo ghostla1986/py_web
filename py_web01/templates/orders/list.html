@@ -133,7 +133,7 @@
             <thead>
                 <tr>
                     <th>序号</th>
-                    <th>提单人员</th>
+                    <th>提单人</th>
                     <th>商品</th>
                     <th>市场售价</th>
                     <th>折扣率</th>
@@ -504,7 +504,7 @@ function saveEdit(orderId) {
         var product = document.getElementById('edit-product-' + orderId).value.trim();
         var marketPrice = document.getElementById('edit-market-' + orderId).value;
         var status = document.getElementById('edit-status-' + orderId).value;
-        if (!customer || !product) { alert('提单人员和商品不能为空'); return; }
+        if (!customer || !product) { alert('提单人和商品不能为空'); return; }
         fd.append('customer', customer);
         fd.append('product', product);
         fd.append('market_price', marketPrice);

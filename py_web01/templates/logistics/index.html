@@ -84,7 +84,7 @@
             <thead>
                 <tr>
                     <th>序号</th>
-                    <th>提单人员</th>
+                    <th>提单人</th>
                     <th>商品</th>
                     <th>市场售价</th>
                     <th>优惠售价</th>
@@ -119,7 +119,7 @@
 
 <script>
 function shipOrder(orderId, customer, product, amount) {
-    if (confirm('确认发货？\n\n提单人员：' + customer + '\n商品：' + product + '\n优惠售价：¥' + amount.toFixed(2) + '\n\n请确认商品信息和金额无误。')) {
+    if (confirm('确认发货？\n\n提单人：' + customer + '\n商品：' + product + '\n优惠售价：¥' + amount.toFixed(2) + '\n\n请确认商品信息和金额无误。')) {
         fetch('/main/ship/' + orderId, { method: 'POST', body: new FormData() })
             .then(function(r) { return r.json(); })
             .then(function(data) {
