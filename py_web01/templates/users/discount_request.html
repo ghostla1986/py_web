@@ -189,9 +189,9 @@
                 <label>选择申请折扣（可享受最大折扣）</label>
                 <select class="form-control" name="requested_discount" id="discountSelect" onchange="updatePreview()">
                     <option value="">-- 请选择 --</option>
-                    {% for i in range(5, 101, 5) %}
+                    {% for i in range(20, 101, 5) %}
                     {% set opt = i / 100.0 %}
-                    {% if opt >= current_discount and opt <= 0.95 %}
+                    {% if opt <= current_discount %}
                     <option value="{{ opt }}"{% if opt == current_discount %} selected{% endif %}>{{ "{:.0%}".format(opt) }}（{{ i }}折）{% if opt == current_discount %}（当前）{% endif %}</option>
                     {% endif %}
                     {% endfor %}
