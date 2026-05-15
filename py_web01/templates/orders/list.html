@@ -540,11 +540,13 @@ function saveEdit(orderId) {
     var fd = new FormData();
 
     if (isAdmin) {
-        var customer = document.getElementById('edit-customer-' + orderId).value.trim();
-        var product = document.getElementById('edit-product-' + orderId).value.trim();
+        // 用户只读，从页面内容取
+        var row = document.getElementById('order-row-' + orderId);
+        var customer = row.querySelector('.customer-cell').textContent.trim();
+        var productSelect = document.getElementById('edit-product-' + orderId);
+        var product = productSelect ? productSelect.value : row.querySelector('.product-cell').textContent.trim();
         var marketPrice = document.getElementById('edit-market-' + orderId).value;
         var status = document.getElementById('edit-status-' + orderId).value;
-        if (!customer || !product) { alert('提单人和商品不能为空'); return; }
         fd.append('customer', customer);
         fd.append('product', product);
         fd.append('market_price', marketPrice);
