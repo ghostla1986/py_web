@@ -209,10 +209,11 @@ function startEditAdmin(itemId) {
     var curOutbound = originalValues[itemId].outbound;
     originalValues[itemId].priceVal = curPrice;
 
-    productCell.innerHTML = '<input type="text" class="edit-input" id="edit-product-' + itemId + '" value="' + curProduct + '">';
-    priceCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-price-' + itemId + '" value="' + curPrice + '">';
-    totalCell.innerHTML = '<input type="number" class="edit-input" id="edit-total-' + itemId + '" value="' + curTotal + '" style="width:80px;">';
-    outboundCell.innerHTML = '<input type="number" class="edit-input" id="edit-outbound-' + itemId + '" value="' + curOutbound + '" style="width:80px;">';
+    row.style.textAlign = 'left';
+    productCell.innerHTML = '<input type="text" class="edit-input" id="edit-product-' + itemId + '" value="' + curProduct + '" style="width:66%;">';
+    priceCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-price-' + itemId + '" value="' + curPrice + '" style="width:60%;">';
+    totalCell.innerHTML = '<input type="number" class="edit-input" id="edit-total-' + itemId + '" value="' + curTotal + '" style="width:60%;">';
+    outboundCell.innerHTML = '<input type="number" class="edit-input" id="edit-outbound-' + itemId + '" value="' + curOutbound + '" style="width:60%;">';
 
     // 把删除替换成取消
     var deleteForm = row.querySelector('.inline-delete-form');
@@ -283,9 +284,10 @@ function startEditWarehouser(itemId) {
     };
 
     // 只把价格和总量变成输入框，商品/出库/剩余保持原样
+    row.style.textAlign = 'left';
     var priceVal = originalValues[itemId].priceVal;
-    priceCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-price-' + itemId + '" value="' + priceVal + '">';
-    totalCell.innerHTML = '<input type="number" class="edit-input" id="edit-total-' + itemId + '" value="' + curTotal + '" style="width:80px;">';
+    priceCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-price-' + itemId + '" value="' + priceVal + '" style="width:60%;">';
+    totalCell.innerHTML = '<input type="number" class="edit-input" id="edit-total-' + itemId + '" value="' + curTotal + '" style="width:60%;">';
 
     // 仓管员没有删除按钮，直接在操作列末尾加取消按钮
     var actionCell = row.querySelector('td:last-child');
@@ -365,6 +367,7 @@ function cancelEdit(itemId) {
     }
 
     row.classList.remove('edit-row');
+    row.style.textAlign = '';
     editBtn.textContent = '编辑';
     editBtn.className = 'action-link btn-edit';
     editBtn.onclick = function() {
