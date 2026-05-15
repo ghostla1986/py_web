@@ -191,8 +191,8 @@
                     <option value="">-- 请选择 --</option>
                     {% for i in range(5, 101, 5) %}
                     {% set opt = i / 100.0 %}
-                    {% if opt < current_discount %}
-                    <option value="{{ opt }}">{{ "{:.0%}".format(opt) }}（{{ i }}折）</option>
+                    {% if opt >= current_discount and opt <= 0.95 %}
+                    <option value="{{ opt }}"{% if opt == current_discount %} selected{% endif %}>{{ "{:.0%}".format(opt) }}（{{ i }}折）{% if opt == current_discount %}（当前）{% endif %}</option>
                     {% endif %}
                     {% endfor %}
                 </select>
