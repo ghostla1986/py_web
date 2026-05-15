@@ -102,7 +102,10 @@
                     {% if user_level == '管理员' %}
                     <th>用户</th>
                     {% endif %}
-                    <th>提交时间</th>
+                    <th style="cursor:pointer;user-select:none;" onclick="toggleSort()">
+                        提交时间
+                        <span id="sortIcon" style="margin-left:4px;font-size:12px;color:#999;">{% if sort == 'asc' %}▲{% else %}▼{% endif %}</span>
+                    </th>
                     <th>状态</th>
                     {% if user_level in ('管理员', '物流仓管员', '物流专员') %}
                     <th style="text-align: center;">操作</th>
@@ -143,6 +146,12 @@
 
 <script>
 var userLevel = '{{ user_level }}';
+var currentSort = '{{ sort }}';
+
+function toggleSort() {
+    var newSort = (currentSort === 'asc') ? 'desc' : 'asc';
+    window.location.href = '/inventory/pending?sort=' + newSort;
+}
 
 function approveItem(itemId) {
     fetch('/inventory/audit/approve/' + itemId, { method: 'POST' })

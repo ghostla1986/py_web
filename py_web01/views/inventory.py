@@ -291,14 +291,18 @@ def pending_items():
         return redirect('/inventory/list')
 
     user_name = session.get('user_name', '')
+    sort = request.args.get('sort', 'desc')
+    if sort not in ('asc', 'desc'):
+        sort = 'desc'
+    time_order = "ASC" if sort == 'asc' else "DESC"
 
     if user_level == '管理员':
         rows = fetch_all(
-            "SELECT id, product, price, total_qty, outbound_qty, remaining_qty, submitted_by, create_time FROM inventory WHERE audit_status='待审核' ORDER BY create_time ASC"
+            f"SELECT id, product, price, total_qty, outbound_qty, remaining_qty, submitted_by, create_time FROM inventory WHERE audit_status='待审核' ORDER BY create_time {time_order}"
         )
     else:
         rows = fetch_all(
-            "SELECT id, product, price, total_qty, outbound_qty, remaining_qty, submitted_by, create_time FROM inventory WHERE audit_status='待审核' AND submitted_by=%s ORDER BY create_time DESC",
+            f"SELECT id, product, price, total_qty, outbound_qty, remaining_qty, submitted_by, create_time FROM inventory WHERE audit_status='待审核' AND submitted_by=%s ORDER BY create_time {time_order}",
             (user_name,)
         )
 
@@ -314,7 +318,7 @@ def pending_items():
             "submitted_by": r[6] or '',
             "create_time": r[7].strftime("%Y-%m-%d %H:%M:%S") if r[7] else ""
         })
-    return render_template("inventory/pending.html", items=items, user_level=user_level)
+    return render_template("inventory/pending.html", items=items, user_level=user_level, sort=sort)
 
 
 # ========== 仓管员：被驳回商品管理 ==========
@@ -326,6 +330,10 @@ def rejected_items():
         return redirect('/inventory/list')
 
     user_name = session.get('user_name', '')
+    sort = request.args.get('sort', 'desc')
+    if sort not in ('asc', 'desc'):
+        sort = 'desc'
+    time_order = "ASC" if sort == 'asc' else "DESC"
 
     # 自动标记过期
     deadline = datetime.now() - timedelta(days=REJECT_DEADLINE_DAYS)
@@ -336,8 +344,8 @@ def rejected_items():
 
     # 查询自己提交的、被驳回/被撤回/已失效的商品
     rows = fetch_all(
-        "SELECT id, product, price, total_qty, audit_status, create_time, reject_time FROM inventory "
-        "WHERE audit_status IN ('已驳回','已撤回','已失效') AND submitted_by=%s ORDER BY reject_time DESC",
+        f"SELECT id, product, price, total_qty, audit_status, create_time, reject_time FROM inventory "
+        f"WHERE audit_status IN ('已驳回','已撤回','已失效') AND submitted_by=%s ORDER BY reject_time {time_order}",
         (user_name,)
     )
     items = []
@@ -356,7 +364,7 @@ def rejected_items():
             "can_delete": audit_st == '已撤回',
             "create_time": r[5].strftime("%Y-%m-%d %H:%M:%S") if r[5] else ""
         })
-    return render_template("inventory/rejected.html", items=items, deadline_days=REJECT_DEADLINE_DAYS)
+    return render_template("inventory/rejected.html", items=items, deadline_days=REJECT_DEADLINE_DAYS, sort=sort)
 
 
 @inv.route('/inventory/rejected/resubmit/<int:item_id>', methods=["POST"])

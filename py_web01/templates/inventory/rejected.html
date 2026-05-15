@@ -125,7 +125,10 @@
                     <th>市场价</th>
                     <th>总量</th>
                     <th>状态</th>
-                    <th>提交时间</th>
+                    <th style="cursor:pointer;user-select:none;" onclick="toggleSort()">
+                        提交时间
+                        <span id="sortIcon" style="margin-left:4px;font-size:12px;color:#999;">{% if sort == 'asc' %}▲{% else %}▼{% endif %}</span>
+                    </th>
                     <th style="text-align: center;">操作</th>
                 </tr>
             </thead>
@@ -168,6 +171,12 @@
 
 <script>
 var originalValues = {};
+var currentSort = '{{ sort }}';
+
+function toggleSort() {
+    var newSort = (currentSort === 'asc') ? 'desc' : 'asc';
+    window.location.href = '/inventory/rejected?sort=' + newSort;
+}
 
 function startResubmit(itemId) {
     var row = document.getElementById('reject-row-' + itemId);
