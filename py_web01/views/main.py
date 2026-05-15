@@ -1,31 +1,59 @@
+# -*- coding: utf-8 -*-
+"""
+订单管理 / 物流管理模块（蓝图：ma）
+订单的列表展示、行内编辑、新建、删除、发货等核心功能
+管理员可直接发货，普通用户订单需审核
+"""
+
 from flask import Blueprint, request, redirect, jsonify, render_template, session
-import sys, os
+import sys
+import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'utils'))
 from db import fetch_all, fetch_one, execute
 
 ma = Blueprint("main", __name__)
 
-# ========== 页面路由 ==========
+
+# ========== 订单列表 ==========
 
 @ma.route('/main/list', methods=["GET", "POST"])
 def main_list():
+    """
+    订单管理列表页
+    管理员：查看全部订单，按状态排序（待处理→待发货→已配送→已送达→已退回）
+    普通用户：只看自己的订单，按创建时间排序
+    物流仓管员：不可见，重定向到物流管理页
+    支持按创建时间升降序排序（sort 参数）
+    """
     user_name = session.get('user_name', '')
     user_level = session.get('user_level', '')
     sort = request.args.get('sort', 'desc')
     if sort not in ('asc', 'desc'):
         sort = 'desc'
     time_order = "ASC" if sort == 'asc' else "DESC"
+
+    # 物流仓管员不可见订单管理
     if user_level in ('物流仓管员', '物流专员'):
         return redirect('/main/ship_list')
+
+    # 根据不同角色加载不同数据
     if user_level == '管理员':
-        rows = fetch_all(f"SELECT id, customer, product, market_price, discount_price, status, create_time FROM orders ORDER BY FIELD(status, '待处理', '待发货', '已配送', '已送达', '已退回'), create_time {time_order}")
+        rows = fetch_all(
+            f"SELECT id, customer, product, market_price, discount_price, status, create_time "
+            f"FROM orders ORDER BY FIELD(status, '待处理', '待发货', '已配送', '已送达', '已退回'), create_time {time_order}"
+        )
     else:
-        rows = fetch_all(f"SELECT id, customer, product, market_price, discount_price, status, create_time FROM orders WHERE customer=%s ORDER BY create_time {time_order}", (user_name,))
+        rows = fetch_all(
+            f"SELECT id, customer, product, market_price, discount_price, status, create_time "
+            f"FROM orders WHERE customer=%s ORDER BY create_time {time_order}",
+            (user_name,)
+        )
+
     orders = []
     for r in rows:
         market_price = float(r[3])
         discount_price = float(r[4])
-        # 折扣率 = 优惠售价 / 市场售价
+        # 折扣率 = 售出价 / 市场价，实时计算展示
         discount_rate = round(discount_price / market_price, 2) if market_price > 0 else 1.0
         orders.append({
             "id": r[0],
@@ -37,16 +65,31 @@ def main_list():
             "status": r[5],
             "create_time": r[6].strftime("%Y-%m-%d %H:%M:%S") if r[6] else ""
         })
-    prod_rows = fetch_all("SELECT product, price FROM inventory WHERE audit_status='已通过' ORDER BY product")
+
+    # 库存商品列表（新建订单下拉用）
+    prod_rows = fetch_all(
+        "SELECT product, price FROM inventory WHERE audit_status='已通过' ORDER BY product"
+    )
     products = [{"product": r[0], "price": float(r[1])} for r in prod_rows]
-    # 当前用户折扣率
+
+    # 当前用户最大折扣（普通用户折扣率下限用）
     disc_row = fetch_one("SELECT discount FROM user_info WHERE user=%s", (user_name,))
     user_discount = float(disc_row[0]) if disc_row else 1.0
-    return render_template("orders/list.html", orders=orders, products=products, user_discount=user_discount, sort=sort)
 
+    return render_template(
+        "orders/list.html",
+        orders=orders, products=products, user_discount=user_discount, sort=sort
+    )
+
+
+# ========== 新建订单（后备页面） ==========
 
 @ma.route('/main/create', methods=["GET", "POST"])
 def create_order():
+    """
+    新建订单（独立页面，实际使用中已改为行内插入）
+    管理员新建的订单直接为"待发货"，普通用户为"待处理"
+    """
     if request.method == "GET":
         prod_rows = fetch_all("SELECT product, price FROM inventory ORDER BY product")
         products = [{"product": r[0], "price": float(r[1])} for r in prod_rows]
@@ -64,10 +107,13 @@ def create_order():
         market_price = float(market_price_str)
         discount_price = float(discount_price_str) if discount_price_str else market_price
 
+        # 管理员直接生成待发货订单，普通用户需审核
         user_level = session.get('user_level', '')
         status = '待发货' if user_level == '管理员' else '待处理'
+
         execute(
-            "INSERT INTO orders (customer, product, market_price, discount_price, status) VALUES (%s, %s, %s, %s, %s)",
+            "INSERT INTO orders (customer, product, market_price, discount_price, status) "
+            "VALUES (%s, %s, %s, %s, %s)",
             (customer, product, market_price, discount_price, status)
         )
         return redirect('/main/list')
@@ -80,11 +126,15 @@ def create_order():
 
 @ma.route('/main/edit/<int:order_id>', methods=["GET", "POST"])
 def edit_order(order_id):
+    """编辑订单（独立后备页面）"""
     user_level = session.get('user_level', '')
     is_regular = (user_level not in ('管理员',))
 
     if request.method == "GET":
-        row = fetch_one("SELECT id, customer, product, market_price, discount_price, status, create_time FROM orders WHERE id=%s", (order_id,))
+        row = fetch_one(
+            "SELECT id, customer, product, market_price, discount_price, status, create_time "
+            "FROM orders WHERE id=%s", (order_id,)
+        )
         if not row:
             return "订单不存在", 404
         order = {
@@ -98,6 +148,7 @@ def edit_order(order_id):
         }
         return render_template("orders/edit.html", order=order, is_regular=is_regular)
 
+    # POST 处理略（实际通过行内编辑 API 完成）
     try:
         customer = request.form.get("customer")
         product = request.form.get("product")
@@ -132,6 +183,7 @@ def edit_order(order_id):
 
 @ma.route('/main/delete/<int:order_id>', methods=["POST"])
 def delete_order(order_id):
+    """删除订单（管理员全部可删，普通用户仅限待处理/待发货）"""
     user_level = session.get('user_level', '')
     if user_level not in ('管理员',):
         row = fetch_one("SELECT status FROM orders WHERE id=%s", (order_id,))
@@ -145,7 +197,11 @@ def delete_order(order_id):
 
 @ma.route('/main/get_order/<int:order_id>', methods=["GET"])
 def get_order(order_id):
-    row = fetch_one("SELECT id, customer, product, market_price, discount_price, status FROM orders WHERE id=%s", (order_id,))
+    """获取单条订单详情（JSON，审核弹窗等场景使用）"""
+    row = fetch_one(
+        "SELECT id, customer, product, market_price, discount_price, status FROM orders WHERE id=%s",
+        (order_id,)
+    )
     if not row:
         return jsonify({"error": "订单不存在"}), 404
     return jsonify({
@@ -160,6 +216,11 @@ def get_order(order_id):
 
 @ma.route('/main/api_create', methods=["POST"])
 def api_create_order():
+    """
+    API：新建订单（行内插入时调用）
+    管理员新建 → 状态为"待发货"
+    普通用户新建 → 状态为"待处理"
+    """
     try:
         customer = request.form.get("customer")
         product = request.form.get("product")
@@ -174,8 +235,10 @@ def api_create_order():
 
         user_level = session.get('user_level', '')
         status = '待发货' if user_level == '管理员' else '待处理'
+
         new_id = execute(
-            "INSERT INTO orders (customer, product, market_price, discount_price, status) VALUES (%s, %s, %s, %s, %s)",
+            "INSERT INTO orders (customer, product, market_price, discount_price, status) "
+            "VALUES (%s, %s, %s, %s, %s)",
             (customer, product, market_price, discount_price, status)
         )
         return jsonify({"success": True, "id": new_id})
@@ -186,17 +249,27 @@ def api_create_order():
         return jsonify({"error": "创建订单失败"}), 500
 
 
+# ========== 物流管理 ==========
+
 @ma.route('/main/ship_list', methods=["GET"])
 def logistics_ship():
+    """
+    物流管理页面
+    显示所有"待发货"订单，管理员和物流仓管员可操作发货
+    支持创建时间排序
+    """
     user_level = session.get('user_level', '')
     if user_level not in ('管理员', '物流仓管员', '物流专员'):
         return redirect('/main/list')
+
     sort = request.args.get('sort', 'desc')
     if sort not in ('asc', 'desc'):
         sort = 'desc'
     time_order = "ASC" if sort == 'asc' else "DESC"
+
     rows = fetch_all(
-        f"SELECT id, customer, product, market_price, discount_price, create_time FROM orders WHERE status='待发货' ORDER BY create_time {time_order}"
+        f"SELECT id, customer, product, market_price, discount_price, create_time "
+        f"FROM orders WHERE status='待发货' ORDER BY create_time {time_order}"
     )
     orders = []
     for r in rows:
@@ -213,22 +286,36 @@ def logistics_ship():
 
 @ma.route('/main/ship/<int:order_id>', methods=["POST"])
 def ship_order(order_id):
+    """发货操作：将订单状态从"待发货"更新为"已配送" """
     try:
-        execute("UPDATE orders SET status='已配送' WHERE id=%s AND status='待发货'", (order_id,))
+        execute(
+            "UPDATE orders SET status='已配送' WHERE id=%s AND status='待发货'",
+            (order_id,)
+        )
         return jsonify({"success": True})
     except Exception as e:
         print(f"Error shipping order: {e}")
         return jsonify({"error": "发货失败"}), 500
 
 
+# ========== 编辑订单 API ==========
+
 @ma.route('/main/api_edit/<int:order_id>', methods=["POST"])
 def api_edit_order(order_id):
+    """
+    API：行内编辑订单
+    管理员：可修改全部字段（提单人、商品、市场价、售出价、状态）
+    普通用户：仅能修改售出价（由折扣率联动计算），其他字段保持原值
+    """
     user_level = session.get('user_level', '')
     is_regular = (user_level not in ('管理员',))
 
     try:
-        # 先读取订单原值
-        row = fetch_one("SELECT customer, product, market_price, discount_price, status FROM orders WHERE id=%s", (order_id,))
+        # 先读取订单原值，用于普通用户的字段保留
+        row = fetch_one(
+            "SELECT customer, product, market_price, discount_price, status FROM orders WHERE id=%s",
+            (order_id,)
+        )
         if not row:
             return jsonify({"error": "订单不存在"}), 404
 
@@ -239,9 +326,8 @@ def api_edit_order(order_id):
         status = request.form.get("status") or row[4]
 
         if is_regular:
-            # 普通用户：只更新 discount_price，其他字段保持原值
+            # 普通用户：仅更新 discount_price，其他字段从数据库读
             market_price = float(row[2])
-            # discount_price 为 0 或空时保持原值（避免前端空传）
             if discount_price_str and float(discount_price_str) > 0:
                 discount_price = float(discount_price_str)
             else:
@@ -249,6 +335,7 @@ def api_edit_order(order_id):
             customer = row[0]
             product = row[1]
         else:
+            # 管理员：全部字段可编辑
             if not market_price_str:
                 return jsonify({"error": "缺少必要字段"}), 400
             market_price = float(market_price_str)

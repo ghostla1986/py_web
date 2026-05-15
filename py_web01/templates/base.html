@@ -6,11 +6,13 @@
     <title>{% block title %}订单管理系统{% endblock %}</title>
     <link rel="stylesheet" href="/static/css/bootstrap.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        /*
+         * 全局布局样式
+         * 左侧栏 220px 固定 + 主内容区自适应
+         * 左侧栏深色背景，主内容区浅灰色
+         */
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             display: flex;
@@ -43,10 +45,11 @@
         }
 
         .sidebar-nav {
-            flex: 1;
+            flex: 1;              /* 撑满剩余空间，使 footer 贴底 */
             padding: 12px 0;
         }
 
+        /* 导航项 */
         .nav-item {
             display: flex;
             align-items: center;
@@ -65,6 +68,7 @@
             text-decoration: none;
         }
 
+        /* 激活态：蓝色左边框 + 蓝色文字 */
         .nav-item.active {
             background: #334155;
             color: #38bdf8;
@@ -78,6 +82,7 @@
             text-align: center;
         }
 
+        /* 底部：用户名 + 登出 */
         .sidebar-footer {
             padding: 16px 20px;
             border-top: 1px solid #334155;
@@ -87,7 +92,7 @@
 
         /* ====== 主内容区 ====== */
         .main-content {
-            margin-left: 220px;
+            margin-left: 220px;   /* 留出左侧栏宽度 */
             flex: 1;
             padding: 20px 30px;
             min-height: 100vh;
@@ -102,24 +107,32 @@
     <div class="sidebar">
         <div class="sidebar-header">订单管理系统</div>
         <nav class="sidebar-nav">
+            <!-- 用户管理（一级菜单） -->
             <a href="/users/list" class="nav-item {% if request.path.startswith('/users') and not request.path.startswith('/users/address') %}active{% endif %}">
                 <span class="nav-icon">👥</span> 用户管理
             </a>
+            <!-- 地址管理（用户管理子菜单） -->
             <a href="/users/address" class="nav-item" style="padding-left:44px;font-size:14px;{% if request.path.startswith('/users/address') %}color:#38bdf8;border-left-color:#38bdf8;background:#334155;{% endif %}">
                 <span style="margin-right:8px;">▸</span> 地址管理
             </a>
+
+            <!-- 订单管理（仓管员不可见） -->
             {% if session.get('user_level') not in ('物流仓管员', '物流专员') %}
             <a href="/main/list" class="nav-item {% if request.path.startswith('/main') and not request.path.startswith('/main/ship') %}active{% endif %}">
                 <span class="nav-icon">📋</span> 订单管理
             </a>
             {% endif %}
+
             {% set ul = session.get('user_level', '') %}
+
+            <!-- 管理员子菜单：订单审核 / 折扣审核（已移除） -->
             {% if ul == '管理员' %}
             <a href="/users/audit" class="nav-item" style="padding-left:44px;font-size:14px;{% if request.path.startswith('/users/audit') %}color:#38bdf8;border-left-color:#38bdf8;background:#334155;{% endif %}">
                 <span style="margin-right:8px;">▸</span> 订单审核
             </a>
             {% endif %}
 
+            <!-- 物流管理 + 库存管理（管理员/仓管员可见） -->
             {% if session.get('user_level') in ('管理员', '物流仓管员', '物流专员') %}
             <a href="/main/ship_list" class="nav-item {% if request.path.startswith('/main/ship') %}active{% endif %}">
                 <span class="nav-icon">🚚</span> 物流管理
@@ -127,11 +140,15 @@
             <a href="/inventory/list" class="nav-item {% if request.path == '/inventory/list' %}active{% endif %}">
                 <span class="nav-icon">📦</span> 库存管理
             </a>
+
+            <!-- 管理员子菜单：商品审核 -->
             {% if ul == '管理员' %}
             <a href="/inventory/pending" class="nav-item" style="padding-left:44px;font-size:14px;{% if request.path.startswith('/inventory/pending') %}color:#38bdf8;border-left-color:#38bdf8;background:#334155;{% endif %}">
                 <span style="margin-right:8px;">▸</span> 商品审核
             </a>
             {% endif %}
+
+            <!-- 仓管员子菜单：待审批商品 / 被驳回商品 -->
             {% if ul in ('物流仓管员', '物流专员') %}
             <a href="/inventory/pending" class="nav-item" style="padding-left:44px;font-size:14px;{% if request.path.startswith('/inventory/pending') %}color:#38bdf8;border-left-color:#38bdf8;background:#334155;{% endif %}">
                 <span style="margin-right:8px;">▸</span> 待审批商品
@@ -142,6 +159,8 @@
             {% endif %}
             {% endif %}
         </nav>
+
+        <!-- 底部：当前用户名 + 登出 -->
         <div class="sidebar-footer">
             <div style="margin-bottom:8px;">{{ session.get('user_name', '') }}</div>
             <a href="/logout" class="nav-item" style="padding:8px 0;font-size:13px;color:#ef4444;border-left:none;display:inline-block;">
