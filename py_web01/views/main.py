@@ -19,18 +19,25 @@ def main_list():
         rows = fetch_all("SELECT id, customer, product, market_price, discount_price, status, create_time FROM orders WHERE customer=%s ORDER BY create_time DESC", (user_name,))
     orders = []
     for r in rows:
+        # 查询该提单人的折扣率
+        disc_row = fetch_one("SELECT discount FROM user_info WHERE user=%s", (r[1],))
+        discount_rate = float(disc_row[0]) if disc_row else 1.0
         orders.append({
             "id": r[0],
             "customer": r[1],
             "product": r[2],
             "market_price": float(r[3]),
             "discount_price": float(r[4]),
+            "discount_rate": discount_rate,
             "status": r[5],
             "create_time": r[6].strftime("%Y-%m-%d %H:%M:%S") if r[6] else ""
         })
     prod_rows = fetch_all("SELECT product, price FROM inventory WHERE audit_status='已通过' ORDER BY product")
     products = [{"product": r[0], "price": float(r[1])} for r in prod_rows]
-    return render_template("orders/list.html", orders=orders, products=products)
+    # 当前用户折扣率
+    disc_row = fetch_one("SELECT discount FROM user_info WHERE user=%s", (user_name,))
+    user_discount = float(disc_row[0]) if disc_row else 1.0
+    return render_template("orders/list.html", orders=orders, products=products, user_discount=user_discount)
 
 
 @ma.route('/main/create', methods=["GET", "POST"])
