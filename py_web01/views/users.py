@@ -10,8 +10,12 @@ us = Blueprint("users", __name__)
 
 @us.route('/users/list', methods=["GET", "POST"])
 def users_list():
+    sort = request.args.get('sort', 'asc')
+    if sort not in ('asc', 'desc'):
+        sort = 'asc'
+    order = "ASC" if sort == 'asc' else "DESC"
     rows = fetch_all(
-        "SELECT id, user, `level`, discount, join_time FROM user_info ORDER BY FIELD(`level`, '管理员', '物流仓管员', '普通用户'), join_time ASC, id ASC"
+        f"SELECT id, user, `level`, discount, join_time FROM user_info ORDER BY FIELD(`level`, '管理员', '物流仓管员', '普通用户'), join_time {order}, id ASC"
     )
     user_list = []
     for r in rows:
@@ -22,7 +26,7 @@ def users_list():
             "discount": float(r[3]),
             "join_time": r[4].strftime("%Y-%m-%d %H:%M:%S") if r[4] else "",
         })
-    return render_template("users/list.html", users=user_list)
+    return render_template("users/list.html", users=user_list, sort=sort)
 
 
 @us.route('/users/create', methods=["GET", "POST"])
