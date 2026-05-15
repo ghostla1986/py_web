@@ -120,137 +120,12 @@
     .edit-row td {
         background-color: #fffde7 !important;
     }
-
-    /* 新建订单表单 */
-    .create-panel {
-        background: #ffffff;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        padding: 20px 25px;
-        margin-bottom: 20px;
-        border: 1px solid #e8f5e9;
-        display: none;
-    }
-
-    .create-panel.open {
-        display: block;
-    }
-
-    .create-panel .form-row {
-        display: flex;
-        gap: 20px;
-        align-items: flex-end;
-        flex-wrap: wrap;
-    }
-
-    .create-panel .form-group {
-        flex: 1;
-        min-width: 160px;
-        margin-bottom: 0;
-    }
-
-    .create-panel label {
-        font-size: 13px;
-        color: #666;
-        font-weight: 500;
-        margin-bottom: 4px;
-        display: block;
-    }
-
-    .create-panel .form-control {
-        font-size: 14px;
-        height: 36px;
-        border-radius: 6px;
-        border: 1px solid #ddd;
-        padding: 6px 12px;
-        width: 100%;
-        box-sizing: border-box;
-    }
-
-    .create-panel .form-control:focus {
-        border-color: #4dabf7;
-        outline: none;
-        box-shadow: 0 0 0 2px rgba(77, 171, 247, 0.15);
-    }
-
-    .create-panel .form-control[readonly] {
-        background: #f5f5f5;
-        color: #666;
-    }
-
-    .create-panel .btn-row {
-        display: flex;
-        gap: 10px;
-        align-items: flex-end;
-        padding-bottom: 2px;
-    }
-
-    .create-panel .btn-row .btn {
-        height: 36px;
-        padding: 6px 20px;
-        border-radius: 6px;
-        font-size: 14px;
-        font-weight: 500;
-        border: none;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .create-panel .btn-submit {
-        background: #2f9e44;
-        color: #fff;
-    }
-
-    .create-panel .btn-submit:hover {
-        background: #248c38;
-    }
-
-    .create-panel .btn-cancel-create {
-        background: transparent;
-        color: #888;
-        border: 1px solid #ddd !important;
-    }
-
-    .create-panel .btn-cancel-create:hover {
-        background: #f5f5f5;
-    }
 </style>
 
 <div class="order-container">
     <div class="page-header">
         <h2 class="page-title">订单管理</h2>
-        <button class="btn btn-primary btn-create" onclick="toggleCreatePanel()">+ 新建订单</button>
-    </div>
-
-    <!-- 新建订单面板 -->
-    <div class="create-panel" id="createPanel">
-        <div class="form-row">
-            <div class="form-group">
-                <label>提单人员</label>
-                <input type="text" class="form-control" id="newCustomer" value="{{ session.get('user_name', '') }}" readonly>
-            </div>
-            <div class="form-group">
-                <label>商品名称</label>
-                <select class="form-control" id="newProduct" required>
-                    <option value="">请选择商品</option>
-                    {% for p in products %}
-                    <option value="{{ p.product }}" data-price="{{ p.price }}">{{ p.product }}（¥{{ "{:.2f}".format(p.price) }}）</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group">
-                <label>售价</label>
-                <input type="text" class="form-control" id="newAmount" readonly placeholder="选择商品后自动填充">
-            </div>
-            <div class="form-group" style="flex:0.6;min-width:100px;">
-                <label>状态</label>
-                <input type="text" class="form-control" value="待处理" readonly>
-            </div>
-            <div class="btn-row">
-                <button class="btn btn-submit" onclick="submitCreate()">提交</button>
-                <button class="btn btn-cancel-create" onclick="hideCreatePanel()">取消</button>
-            </div>
-        </div>
+        <button class="btn btn-primary btn-create" onclick="addNewRow()">+ 新建订单</button>
     </div>
 
     <div class="table-card">
@@ -302,35 +177,64 @@
 
 <script>
 var editingId = null;
+var nextNewId = -1;
 var userLevel = '{{ session.get("user_level", "") }}';
 var originalValues = {};
 
-/* ======================= 新建订单面板 ======================= */
-function toggleCreatePanel() {
-    var panel = document.getElementById('createPanel');
-    panel.classList.toggle('open');
-    if (panel.classList.contains('open')) {
-        document.getElementById('newProduct').value = '';
-        document.getElementById('newAmount').value = '';
-        document.getElementById('newProduct').addEventListener('change', fillAmount);
+/* ======================= 新建订单（插入行） ======================= */
+function addNewRow() {
+    if (editingId && editingId > 0) {
+        cancelEdit(editingId);
     }
+
+    var tbody = document.querySelector('#orderTable tbody');
+    var newId = nextNewId--;
+    var newRow = document.createElement('tr');
+    newRow.id = 'order-row-' + newId;
+    newRow.dataset.id = newId;
+    newRow.className = 'edit-row';
+
+    var username = '{{ session.get("user_name", "") }}';
+
+    newRow.innerHTML = '<td class="index-cell" style="color:#aaa;">新增</td>' +
+        '<td class="customer-cell"><input type="text" class="edit-input" id="new-customer-' + newId + '" value="' + username + '" readonly style="background:#f5f5f5;color:#666;"></td>' +
+        '<td class="product-cell"><select class="edit-select" id="new-product-' + newId + '" style="width:100%;">' +
+            '<option value="">请选择商品</option>' +
+            {% for p in products %}
+            '<option value="{{ p.product }}" data-price="{{ p.price }}">{{ p.product }}（¥{{ "{:.2f}".format(p.price) }}）</option>' +
+            {% endfor %}
+        '</select></td>' +
+        '<td class="amount-cell amount-text"><input type="text" class="edit-input" id="new-amount-' + newId + '" readonly placeholder="选择商品后自动填充" style="background:#f5f5f5;color:#666;"></td>' +
+        '<td><span class="status-badge status-待处理">待处理</span></td>' +
+        '<td style="color:#aaa;font-size:14px;">新建</td>' +
+        '<td style="text-align:center;">' +
+            '<button class="action-link btn-save" onclick="saveNew(' + newId + ')">保存</button>' +
+            '<span style="color:#ddd;">|</span>' +
+            '<button class="action-link btn-delete" onclick="cancelNew(' + newId + ')">取消</button>' +
+        '</td>';
+
+    tbody.insertBefore(newRow, tbody.firstChild);
+    editingId = newId;
+
+    // 商品下拉切换时自动填充售价
+    document.getElementById('new-product-' + newId).addEventListener('change', function() {
+        var sel = this;
+        var selected = sel.options[sel.selectedIndex];
+        var price = selected.getAttribute('data-price');
+        document.getElementById('new-amount-' + newId).value = price ? parseFloat(price).toFixed(2) : '';
+    });
 }
 
-function hideCreatePanel() {
-    document.getElementById('createPanel').classList.remove('open');
+function cancelNew(rowId) {
+    var row = document.getElementById('order-row-' + rowId);
+    if (row) row.remove();
+    editingId = null;
 }
 
-function fillAmount() {
-    var select = document.getElementById('newProduct');
-    var selected = select.options[select.selectedIndex];
-    var price = selected.getAttribute('data-price');
-    document.getElementById('newAmount').value = price ? parseFloat(price).toFixed(2) : '';
-}
-
-function submitCreate() {
-    var customer = document.getElementById('newCustomer').value.trim();
-    var product = document.getElementById('newProduct').value;
-    var amount = document.getElementById('newAmount').value;
+function saveNew(rowId) {
+    var customer = document.getElementById('new-customer-' + rowId).value.trim();
+    var product = document.getElementById('new-product-' + rowId).value;
+    var amount = document.getElementById('new-amount-' + rowId).value;
 
     if (!product) { alert('请选择商品'); return; }
     if (!amount || parseFloat(amount) <= 0) { alert('售价无效'); return; }
@@ -353,7 +257,13 @@ function submitCreate() {
 
 function startEdit(orderId) {
     if (editingId && editingId !== orderId) {
-        cancelEdit(editingId);
+        if (editingId < 0) {
+            var oldRow = document.getElementById('order-row-' + editingId);
+            if (oldRow) oldRow.remove();
+            editingId = null;
+        } else {
+            cancelEdit(editingId);
+        }
     }
 
     var row = document.getElementById('order-row-' + orderId);
