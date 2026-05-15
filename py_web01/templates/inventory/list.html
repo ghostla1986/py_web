@@ -120,6 +120,18 @@
         text-align: center;
     }
 
+    .edit-input.product {
+        width: 12em;
+    }
+
+    .edit-input.price {
+        width: 15em;
+    }
+
+    .edit-input.qty {
+        width: 10em;
+    }
+
     .edit-row td {
         background-color: #fffde7 !important;
     }
@@ -211,10 +223,10 @@ function startEditAdmin(itemId) {
     originalValues[itemId].priceVal = curPrice;
 
     row.style.textAlign = 'left';
-    productCell.innerHTML = '<input type="text" class="edit-input" id="edit-product-' + itemId + '" value="' + curProduct + '" style="width:50%;">';
-    priceCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-price-' + itemId + '" value="' + curPrice + '" style="width:50%;">';
-    totalCell.innerHTML = '<input type="number" class="edit-input" id="edit-total-' + itemId + '" value="' + curTotal + '" style="width:50%;">';
-    outboundCell.innerHTML = '<input type="number" class="edit-input" id="edit-outbound-' + itemId + '" value="' + curOutbound + '" style="width:50%;">';
+    productCell.innerHTML = '<input type="text" class="edit-input product" id="edit-product-' + itemId + '" value="' + curProduct + '">';
+    priceCell.innerHTML = '<input type="number" step="0.01" class="edit-input price" id="edit-price-' + itemId + '" value="' + curPrice + '">';
+    totalCell.innerHTML = '<input type="number" class="edit-input qty" id="edit-total-' + itemId + '" value="' + curTotal + '">';
+    outboundCell.innerHTML = '<input type="number" class="edit-input qty" id="edit-outbound-' + itemId + '" value="' + curOutbound + '">';
 
     // 把删除替换成取消
     var deleteForm = row.querySelector('.inline-delete-form');
@@ -287,8 +299,8 @@ function startEditWarehouser(itemId) {
     // 只把价格和总量变成输入框，商品/出库/剩余保持原样
     row.style.textAlign = 'left';
     var priceVal = originalValues[itemId].priceVal;
-    priceCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-price-' + itemId + '" value="' + priceVal + '" style="width:50%;">';
-    totalCell.innerHTML = '<input type="number" class="edit-input" id="edit-total-' + itemId + '" value="' + curTotal + '" style="width:50%;">';
+    priceCell.innerHTML = '<input type="number" step="0.01" class="edit-input price" id="edit-price-' + itemId + '" value="' + priceVal + '">';
+    totalCell.innerHTML = '<input type="number" class="edit-input qty" id="edit-total-' + itemId + '" value="' + curTotal + '">';
 
     // 仓管员没有删除按钮，直接在操作列末尾加取消按钮
     var actionCell = row.querySelector('td:last-child');
@@ -400,11 +412,11 @@ function addNewRow() {
     newRow.className = 'edit-row';
 
     newRow.innerHTML = '<td style="text-align:center;color:#aaa;">新增</td>' +
-        '<td class="product-cell" style="text-align:center;"><input type="text" class="edit-input" id="new-product-' + newId + '" placeholder="输入商品名" style="width:80%;"></td>' +
-        '<td class="price-cell" style="text-align:center;"><input type="number" step="0.01" class="edit-input" id="new-price-' + newId + '" placeholder="市场价" style="width:60%;"></td>' +
+        '<td class="product-cell" style="text-align:center;"><input type="text" class="edit-input product" id="new-product-' + newId + '" placeholder="输入商品名"></td>' +
+        '<td class="price-cell" style="text-align:center;"><input type="number" step="0.01" class="edit-input price" id="new-price-' + newId + '" placeholder="市场价"></td>' +
         '<td class="remaining-cell" style="text-align:center;">—</td>' +
         '<td class="outbound-cell" style="text-align:center;">0</td>' +
-        '<td class="total-cell" style="text-align:center;"><input type="number" class="edit-input" id="new-total-' + newId + '" placeholder="总量" style="width:60%;"></td>' +
+        '<td class="total-cell" style="text-align:center;"><input type="number" class="edit-input qty" id="new-total-' + newId + '" placeholder="总量"></td>' +
         '<td style="text-align:center;">' +
             '<button class="action-link btn-save" onclick="saveNewItem(' + newId + ')">保存</button>' +
             '<span style="color:#ddd;">|</span>' +
