@@ -283,15 +283,28 @@ function saveNew(rowId) {
 
 /* ======================= 折扣率联动计算 ======================= */
 function recalcEditDiscount(orderId) {
-    var marketInput = document.getElementById('edit-market-' + orderId);
     var rateSelect = document.getElementById('edit-rate-' + orderId);
     var discountInput = document.getElementById('edit-discount-' + orderId);
-    if (marketInput && rateSelect && discountInput && marketInput.value) {
-        var marketVal = parseFloat(marketInput.value);
-        var rateVal = parseFloat(rateSelect.value);
-        if (!isNaN(marketVal) && !isNaN(rateVal)) {
-            discountInput.value = (marketVal * rateVal).toFixed(2);
+    if (!rateSelect || !discountInput) return;
+
+    // 市场价可能是输入框或只读 span
+    var marketInput = document.getElementById('edit-market-' + orderId);
+    var marketVal;
+    if (marketInput) {
+        marketVal = parseFloat(marketInput.value);
+    } else {
+        // 普通用户：从只读 span 取值
+        var row = document.getElementById('order-row-' + orderId);
+        var marketCell = row ? row.querySelector('.market-cell') : null;
+        if (marketCell) {
+            var txt = marketCell.textContent.trim().replace('¥', '').replace(/,/g, '');
+            marketVal = parseFloat(txt);
         }
+    }
+
+    var rateVal = parseFloat(rateSelect.value);
+    if (!isNaN(marketVal) && !isNaN(rateVal)) {
+        discountInput.value = (marketVal * rateVal).toFixed(2);
     }
 }
 
