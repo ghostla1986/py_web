@@ -219,7 +219,7 @@ function addNewRow() {
             {% endfor %}
         '</select></td>' +
         '<td class="market-cell"><input type="text" class="edit-input" id="new-market-' + newId + '" readonly placeholder="自动填充" style="background:#f5f5f5;color:#666;"></td>' +
-        '<td class="rate-cell"><select class="edit-select" id="new-rate-' + newId + '" style="width:100%;" onchange="recalcDiscount(' + newId + ')">' + rateOptions + '</select></td>' +
+        '<td class="rate-cell"><select class="edit-select" id="new-rate-' + newId + '" style="width:100%;">' + rateOptions + '</select></td>' +
         '<td class="discount-cell"><input type="text" class="edit-input" id="new-discount-' + newId + '" readonly placeholder="自动计算" style="background:#f5f5f5;color:#2f9e44;"></td>' +
         '<td><span class="status-badge status-待处理">待处理</span></td>' +
         '<td style="color:#aaa;font-size:14px;">新建</td>' +
@@ -381,10 +381,24 @@ function startEdit(orderId) {
         var sel = (r === curRateNum) ? ' selected' : '';
         rateOpts += '<option value="' + (r / 100).toFixed(2) + '"' + sel + '>' + r + '%</option>';
     }
-    rateCell.innerHTML = '<select class="edit-select" id="edit-rate-' + orderId + '" style="width:100%;" onchange="recalcEditDiscount(' + orderId + ')">' + rateOpts + '</select>';
+    rateCell.innerHTML = '<select class="edit-select" id="edit-rate-' + orderId + '" style="width:100%;">' + rateOpts + '</select>';
 
     // 优惠售价（所有人只读，由联动自动计算）
     discountCell.innerHTML = '<input type="text" class="edit-input" id="edit-discount-' + orderId + '" value="' + discountVal + '" readonly style="background:#f5f5f5;color:#2f9e44;">';
+
+    // 用 JS 绑定事件，确保联动生效
+    setTimeout(function() {
+        var rateSelect = document.getElementById('edit-rate-' + orderId);
+        var marketInput = document.getElementById('edit-market-' + orderId);
+        if (rateSelect) {
+            rateSelect.addEventListener('change', function() { recalcEditDiscount(orderId); });
+        }
+        if (marketInput) {
+            marketInput.addEventListener('input', function() { recalcEditDiscount(orderId); });
+        }
+        // 进入编辑时立即计算一次
+        recalcEditDiscount(orderId);
+    }, 0);
 
     // 状态字段
     if (userLevel === '管理员') {
