@@ -19,15 +19,16 @@ def main_list():
         rows = fetch_all("SELECT id, customer, product, market_price, discount_price, status, create_time FROM orders WHERE customer=%s ORDER BY create_time DESC", (user_name,))
     orders = []
     for r in rows:
-        # 查询该提单人的折扣率
-        disc_row = fetch_one("SELECT discount FROM user_info WHERE user=%s", (r[1],))
-        discount_rate = float(disc_row[0]) if disc_row else 1.0
+        market_price = float(r[3])
+        discount_price = float(r[4])
+        # 折扣率 = 优惠售价 / 市场售价
+        discount_rate = round(discount_price / market_price, 2) if market_price > 0 else 1.0
         orders.append({
             "id": r[0],
             "customer": r[1],
             "product": r[2],
-            "market_price": float(r[3]),
-            "discount_price": float(r[4]),
+            "market_price": market_price,
+            "discount_price": discount_price,
             "discount_rate": discount_rate,
             "status": r[5],
             "create_time": r[6].strftime("%Y-%m-%d %H:%M:%S") if r[6] else ""
