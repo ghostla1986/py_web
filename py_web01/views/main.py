@@ -286,7 +286,7 @@ def logistics_ship():
 
 @ma.route('/main/ship/<int:order_id>', methods=["POST"])
 def ship_order(order_id):
-    """发货操作：将订单状态从"待发货"更新为"已配送" """
+    """发货操作：将订单状态从 待发货 更新为 已配送"""
     try:
         execute(
             "UPDATE orders SET status='已配送' WHERE id=%s AND status='待发货'",

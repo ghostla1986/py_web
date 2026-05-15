@@ -201,7 +201,7 @@ def audit_approve(order_id):
 
 @us.route('/users/audit/reject/<int:order_id>', methods=["POST"])
 def audit_reject(order_id):
-    """退回订单：状态设为"已退回""""
+    """退回订单：状态设为 已退回"""
     execute(
         "UPDATE orders SET status='已退回' WHERE id=%s AND status='待处理'",
         (order_id,)
