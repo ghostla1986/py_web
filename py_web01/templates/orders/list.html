@@ -338,20 +338,33 @@ function startEdit(orderId) {
         status: currentStatus
     };
 
-    // 提单人字段
-    customerCell.innerHTML = '<input type="text" class="edit-input" id="edit-customer-' + orderId + '" value="' + currentCustomer + '">';
-
-    // 商品字段
-    productCell.innerHTML = '<input type="text" class="edit-input" id="edit-product-' + orderId + '" value="' + currentProduct + '">';
-
-    // 金额字段（去掉 ¥ 前缀取数值）
+    var isAdmin = (userLevel === '管理员');
     var marketVal = currentMarket.replace('¥', '').replace(/,/g, '').trim();
     var discountVal = currentDiscount.replace('¥', '').replace(/,/g, '').trim();
     var curRateNum = parseInt(currentRate) || 100;
 
-    marketCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-market-' + orderId + '" value="' + marketVal + '" onchange="recalcEditDiscount(' + orderId + ')">';
+    // 提单人字段
+    if (isAdmin) {
+        customerCell.innerHTML = '<input type="text" class="edit-input" id="edit-customer-' + orderId + '" value="' + currentCustomer + '">';
+    } else {
+        customerCell.innerHTML = '<strong>' + currentCustomer + '</strong>';
+    }
 
-    // 折扣率下拉：100%到用户可享受最大折扣之间
+    // 商品字段
+    if (isAdmin) {
+        productCell.innerHTML = '<input type="text" class="edit-input" id="edit-product-' + orderId + '" value="' + currentProduct + '">';
+    } else {
+        productCell.innerHTML = currentProduct;
+    }
+
+    // 市场售价
+    if (isAdmin) {
+        marketCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-market-' + orderId + '" value="' + marketVal + '" onchange="recalcEditDiscount(' + orderId + ')">';
+    } else {
+        marketCell.innerHTML = '<span class="amount-text">' + currentMarket + '</span>';
+    }
+
+    // 折扣率下拉：100%到用户可享受最大折扣之间（所有人可编辑）
     var rateOpts = '';
     var minRate = Math.ceil({{ user_discount }} * 100);
     for (var r = 100; r >= minRate; r -= 5) {
@@ -359,7 +372,9 @@ function startEdit(orderId) {
         rateOpts += '<option value="' + (r / 100).toFixed(2) + '"' + sel + '>' + r + '%</option>';
     }
     rateCell.innerHTML = '<select class="edit-select" id="edit-rate-' + orderId + '" style="width:100%;" onchange="recalcEditDiscount(' + orderId + ')">' + rateOpts + '</select>';
-    discountCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-discount-' + orderId + '" value="' + discountVal + '">';
+
+    // 优惠售价（所有人只读，由联动自动计算）
+    discountCell.innerHTML = '<input type="text" class="edit-input" id="edit-discount-' + orderId + '" value="' + discountVal + '" readonly style="background:#f5f5f5;color:#2f9e44;">';
 
     // 状态字段
     if (userLevel === '管理员') {
@@ -439,27 +454,29 @@ function cancelEdit(orderId) {
 }
 
 function saveEdit(orderId) {
-    var customer = document.getElementById('edit-customer-' + orderId).value.trim();
-    var product = document.getElementById('edit-product-' + orderId).value.trim();
+    var isAdmin = (userLevel === '管理员');
+    var discountPrice = document.getElementById('edit-discount-' + orderId).value;
 
-    if (!customer || !product) {
-        alert('提单人员和商品不能为空');
+    if (!discountPrice || parseFloat(discountPrice) <= 0) {
+        alert('优惠售价无效');
         return;
     }
 
     var fd = new FormData();
-    fd.append('customer', customer);
-    fd.append('product', product);
 
-    var marketPrice = document.getElementById('edit-market-' + orderId).value;
-    var discountPrice = document.getElementById('edit-discount-' + orderId).value;
-    fd.append('market_price', marketPrice);
-    fd.append('discount_price', discountPrice);
-
-    if (userLevel === '管理员') {
+    if (isAdmin) {
+        var customer = document.getElementById('edit-customer-' + orderId).value.trim();
+        var product = document.getElementById('edit-product-' + orderId).value.trim();
+        var marketPrice = document.getElementById('edit-market-' + orderId).value;
         var status = document.getElementById('edit-status-' + orderId).value;
+        if (!customer || !product) { alert('提单人员和商品不能为空'); return; }
+        fd.append('customer', customer);
+        fd.append('product', product);
+        fd.append('market_price', marketPrice);
         fd.append('status', status);
     }
+
+    fd.append('discount_price', discountPrice);
 
     fetch('/main/api_edit/' + orderId, { method: 'POST', body: fd })
         .then(function(r) { return r.json(); })
