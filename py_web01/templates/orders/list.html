@@ -200,11 +200,9 @@ function addNewRow() {
 
     var username = '{{ session.get("user_name", "") }}';
 
-    var userDiscount = {{ user_discount }};
-    // 生成折扣率下拉选项：100%到用户可享受最大折扣之间，5%一档
+    // 生成折扣率下拉选项：100%到20%之间，5%一档
     var rateOptions = '';
-    var minRate = Math.ceil(userDiscount * 100);
-    for (var r = 100; r >= minRate; r -= 5) {
+    for (var r = 100; r >= 20; r -= 5) {
         var rateVal = (r / 100).toFixed(2);
         var selected = (r === 100) ? ' selected' : '';
         rateOptions += '<option value="' + rateVal + '"' + selected + '>' + r + '%</option>';
@@ -389,8 +387,7 @@ function startEdit(orderId) {
 
     // 折扣率下拉：100%到用户可享受最大折扣之间（所有人可编辑）
     var rateOpts = '';
-    var minRate = Math.ceil({{ user_discount }} * 100);
-    for (var r = 100; r >= minRate; r -= 5) {
+    for (var r = 100; r >= 20; r -= 5) {
         var sel = (r === curRateNum) ? ' selected' : '';
         rateOpts += '<option value="' + (r / 100).toFixed(2) + '"' + sel + '>' + r + '%</option>';
     }
