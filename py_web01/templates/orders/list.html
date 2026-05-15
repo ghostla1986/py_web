@@ -347,21 +347,19 @@ function startEdit(orderId) {
     // 金额字段（去掉 ¥ 前缀取数值）
     var marketVal = currentMarket.replace('¥', '').replace(/,/g, '').trim();
     var discountVal = currentDiscount.replace('¥', '').replace(/,/g, '').trim();
-    if (userLevel === '管理员') {
-        marketCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-market-' + orderId + '" value="' + marketVal + '" onchange="recalcEditDiscount(' + orderId + ')">';
-        // 折扣率下拉
-        var curRateNum = parseInt(currentRate) || 100;
-        var rateOpts = '';
-        for (var r = 5; r <= 95; r += 5) {
-            var sel = (r === curRateNum) ? ' selected' : '';
-            rateOpts += '<option value="' + (r / 100) + '"' + sel + '>' + r + '%</option>';
-        }
-        rateCell.innerHTML = '<select class="edit-select" id="edit-rate-' + orderId + '" style="width:100%;" onchange="recalcEditDiscount(' + orderId + ')">' + rateOpts + '</select>';
-        discountCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-discount-' + orderId + '" value="' + discountVal + '">';
-    } else {
-        marketCell.innerHTML = '<span class="amount-text">' + currentMarket + '</span>';
-        discountCell.innerHTML = '<span class="amount-text">' + currentDiscount + '</span>';
+    var curRateNum = parseInt(currentRate) || 100;
+
+    marketCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-market-' + orderId + '" value="' + marketVal + '" onchange="recalcEditDiscount(' + orderId + ')">';
+
+    // 折扣率下拉：100%到用户可享受最大折扣之间
+    var rateOpts = '';
+    var minRate = Math.ceil({{ user_discount }} * 100);
+    for (var r = 100; r >= minRate; r -= 5) {
+        var sel = (r === curRateNum) ? ' selected' : '';
+        rateOpts += '<option value="' + (r / 100).toFixed(2) + '"' + sel + '>' + r + '%</option>';
     }
+    rateCell.innerHTML = '<select class="edit-select" id="edit-rate-' + orderId + '" style="width:100%;" onchange="recalcEditDiscount(' + orderId + ')">' + rateOpts + '</select>';
+    discountCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-discount-' + orderId + '" value="' + discountVal + '">';
 
     // 状态字段
     if (userLevel === '管理员') {
@@ -453,15 +451,14 @@ function saveEdit(orderId) {
     fd.append('customer', customer);
     fd.append('product', product);
 
+    var marketPrice = document.getElementById('edit-market-' + orderId).value;
+    var discountPrice = document.getElementById('edit-discount-' + orderId).value;
+    fd.append('market_price', marketPrice);
+    fd.append('discount_price', discountPrice);
+
     if (userLevel === '管理员') {
-        var marketPrice = document.getElementById('edit-market-' + orderId).value;
-        var discountPrice = document.getElementById('edit-discount-' + orderId).value;
         var status = document.getElementById('edit-status-' + orderId).value;
-        fd.append('market_price', marketPrice);
-        fd.append('discount_price', discountPrice);
         fd.append('status', status);
-        // 注意：折扣率的修改不在此处处理，它在新建时由前端计算discount_price后提交
-        // 编辑时修改折扣率会联动更新discount_price，通过discount_price字段提交
     }
 
     fetch('/main/api_edit/' + orderId, { method: 'POST', body: fd })
