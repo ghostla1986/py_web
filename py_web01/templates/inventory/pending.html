@@ -96,17 +96,17 @@
         <table class="table table-hover">
             <thead>
                 <tr>
-                    <th>商品</th>
-                    <th>市场价</th>
-                    <th>总量</th>
+                    <th style="text-align:center;">商品</th>
+                    <th style="text-align:center;">市场价</th>
+                    <th style="text-align:center;">总量</th>
                     {% if user_level == '管理员' %}
-                    <th>用户</th>
+                    <th style="text-align:center;">用户</th>
                     {% endif %}
-                    <th style="cursor:pointer;user-select:none;" onclick="toggleSort()">
+                    <th style="cursor:pointer;user-select:none;text-align:center;" onclick="toggleSort()">
                         提交时间
                         <span id="sortIcon" style="margin-left:4px;font-size:12px;color:#999;">{% if sort == 'asc' %}▲{% else %}▼{% endif %}</span>
                     </th>
-                    <th>状态</th>
+                    <th style="text-align:center;">状态</th>
                     {% if user_level in ('管理员', '物流仓管员', '物流专员') %}
                     <th style="text-align: center;">操作</th>
                     {% endif %}
@@ -115,14 +115,14 @@
             <tbody>
                 {% for item in items %}
                 <tr>
-                    <td><strong>{{ item.product }}</strong></td>
-                    <td class="price-text">¥{{ "{:,.2f}".format(item.price) }}</td>
-                    <td>{{ item.total_qty }}</td>
+                    <td style="text-align:center;"><strong>{{ item.product }}</strong></td>
+                    <td style="text-align:center;" class="price-text">¥{{ "{:,.2f}".format(item.price) }}</td>
+                    <td style="text-align:center;">{{ item.total_qty }}</td>
                     {% if user_level == '管理员' %}
-                    <td style="color: #888; font-size: 13px;">{{ item.submitted_by }}</td>
+                    <td style="text-align:center;color: #888; font-size: 13px;">{{ item.submitted_by }}</td>
                     {% endif %}
-                    <td style="color: #888; font-size: 14px;">{{ item.create_time }}</td>
-                    <td><span class="status-badge status-待审批">待审批</span></td>
+                    <td style="text-align:center;color: #888; font-size: 14px;">{{ item.create_time }}</td>
+                    <td style="text-align:center;"><span class="status-badge status-待审批">待审批</span></td>
                     <td style="text-align: center;">
                         {% if user_level == '管理员' %}
                         <button class="action-link btn-approve" onclick="approveItem({{ item.id }})">审核通过</button>
