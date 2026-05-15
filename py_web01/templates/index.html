@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
@@ -10,7 +10,6 @@
         * {
             padding: 0;
             margin: 0;
-            transition: .3s;
         }
 
         body {
@@ -18,99 +17,89 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-image:url('/static/03.JPG');
-            background-size: cover;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
         }
 
         .shell {
-            width: 350px;
-            padding: 40px;
+            width: 380px;
+            padding: 45px 40px 35px;
             display: flex;
             align-items: center;
             flex-direction: column;
-            background-color: #ffffff49;
-            border-radius: 50px;
-            box-shadow: 0 0 30px rgba(255, 255, 255, 0.5) inset;
-            transform: translateY(-50px);
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
 
         .title {
-            font-size: 80px;
+            font-size: 32px;
+            font-weight: 700;
             margin-bottom: 30px;
-            color: #fff;
-            text-shadow: 0 0 10px #ff9dff80;
+            color: #f1f5f9;
+            letter-spacing: 2px;
         }
 
         input[type="text"],
         input[type="password"] {
             width: 100%;
-            height: 50px;
-            margin: 10px 0;
+            height: 48px;
+            margin: 8px 0;
             box-sizing: border-box;
-            color: rgb(0, 0, 0);
-            border: 5px solid transparent;
-            background: rgba(255, 255, 255, .5);
-            border-radius: 100px;
-            padding: 5px 20px 0 20px;
-            transition: 0.3s;
-            font-size: 18px;
-            outline: none
+            color: #e2e8f0;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 0 16px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s, background 0.2s;
         }
 
-            input[type="text"]:hover,
-            input[type="password"]:hover {
-                background: rgba(255, 255, 255, 0);
-                border: 5px solid #ffffff;
-            }
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            border-color: #60a5fa;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        input[type="text"]::placeholder,
+        input[type="password"]::placeholder {
+            color: #94a3b8;
+        }
 
         input[type="submit"] {
             width: 100%;
-            height: 50px;
-            padding: 10px;
-            margin: 15px 0;
-            border-radius: 100px;
+            height: 48px;
+            padding: 0;
+            margin: 16px 0 8px;
+            border-radius: 10px;
             border: none;
-            background-color: #007bff;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
             color: #fff;
             cursor: pointer;
-            font-size: 20px;
-            letter-spacing: 3px;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            transition: opacity 0.2s;
         }
 
-        input::placeholder {
-            color: #92A7E8;
+        input[type="submit"]:hover {
+            opacity: 0.9;
         }
 
-        .footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            margin-top: 20px;
+        input[type="submit"]:active {
+            transform: scale(0.98);
         }
 
-        .Remember {
-            opacity: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 18px;
-            color: #7597ff;
-        }
-
-        input[type="checkbox"] {
+        .error-msg {
+            color: #f87171;
+            font-size: 14px;
+            margin-top: 4px;
             display: block;
-            width: 25px;
-            height: 25px;
-            margin-right: 10px;
-            background-color: #007bff;
-        }
-
-        #Password {
-            border: none;
-            background-color: #ffffff00;
-            color: #7597ff;
-            font-size: 18px;
+            text-align: center;
         }
     </style>
 </head>
@@ -118,14 +107,16 @@
 <body>
     <div class="shell">
         <h2 class="title">Login</h2>
-        <form method="post" action="/login">
-            <input type="text" id="user" name="user" placeholder="Username">
-            <input type="password" id="pwd" name="pwd" placeholder="Password">
-            <input type="submit" value="Login" id="loginBtn">
-            <span style="color:red;">{{error}}</span>
-            <script src="/static/jquery-4.0.0.min.js"></script>
-            <script src="/static/js/bootstrap.js"></script>
+        <form method="post" action="/login" style="width:100%;">
+            <input type="text" id="user" name="user" placeholder="用户名">
+            <input type="password" id="pwd" name="pwd" placeholder="密码">
+            <input type="submit" value="登 录" id="loginBtn">
+            {% if error %}
+            <span class="error-msg">{{ error }}</span>
+            {% endif %}
         </form>
     </div>
+    <script src="/static/jquery-4.0.0.min.js"></script>
+    <script src="/static/js/bootstrap.js"></script>
 </body>
 </html>
