@@ -98,7 +98,7 @@ def edit_user(user_id):
 @us.route('/users/audit', methods=["GET"])
 def audit_orders():
     rows = fetch_all(
-        "SELECT id, customer, product, amount, status, create_time FROM orders WHERE status='待处理' ORDER BY create_time ASC"
+        "SELECT id, customer, product, market_price, discount_price, status, create_time FROM orders WHERE status='待处理' ORDER BY create_time ASC"
     )
     orders = []
     for r in rows:
@@ -106,9 +106,10 @@ def audit_orders():
             "id": r[0],
             "customer": r[1],
             "product": r[2],
-            "amount": float(r[3]),
-            "status": r[4],
-            "create_time": r[5].strftime("%Y-%m-%d %H:%M:%S") if r[5] else ""
+            "market_price": float(r[3]),
+            "discount_price": float(r[4]),
+            "status": r[5],
+            "create_time": r[6].strftime("%Y-%m-%d %H:%M:%S") if r[6] else ""
         })
     return render_template("users/audit.html", orders=orders)
 

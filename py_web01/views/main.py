@@ -14,23 +14,24 @@ def main_list():
     if user_level in ('物流仓管员', '物流专员'):
         return redirect('/main/ship_list')
     if user_level == '管理员':
-        rows = fetch_all("SELECT id, customer, product, amount, status, create_time FROM orders ORDER BY FIELD(status, '待处理', '待发货', '已配送', '已送达', '已退回'), create_time DESC")
+        rows = fetch_all("SELECT id, customer, product, market_price, discount_price, status, create_time FROM orders ORDER BY FIELD(status, '待处理', '待发货', '已配送', '已送达', '已退回'), create_time DESC")
     else:
-        rows = fetch_all("SELECT id, customer, product, amount, status, create_time FROM orders WHERE customer=%s ORDER BY create_time DESC", (user_name,))
-    # 将元组转为模板友好的字典列表，并格式化时间
+        rows = fetch_all("SELECT id, customer, product, market_price, discount_price, status, create_time FROM orders WHERE customer=%s ORDER BY create_time DESC", (user_name,))
     orders = []
     for r in rows:
         orders.append({
             "id": r[0],
             "customer": r[1],
             "product": r[2],
-            "amount": r[3],
-            "status": r[4],
-            "create_time": r[5].strftime("%Y-%m-%d %H:%M:%S") if r[5] else ""
+            "market_price": float(r[3]),
+            "discount_price": float(r[4]),
+            "status": r[5],
+            "create_time": r[6].strftime("%Y-%m-%d %H:%M:%S") if r[6] else ""
         })
     prod_rows = fetch_all("SELECT product, price FROM inventory WHERE audit_status='已通过' ORDER BY product")
     products = [{"product": r[0], "price": float(r[1])} for r in prod_rows]
     return render_template("orders/list.html", orders=orders, products=products)
+
 
 @ma.route('/main/create', methods=["GET", "POST"])
 def create_order():
@@ -42,16 +43,18 @@ def create_order():
     try:
         customer = request.form.get("customer")
         product = request.form.get("product")
-        amount_str = request.form.get("amount")
+        market_price_str = request.form.get("market_price")
+        discount_price_str = request.form.get("discount_price")
 
-        if not customer or not product or not amount_str:
+        if not customer or not product or not market_price_str:
             return "缺少必要字段", 400
 
-        amount = float(amount_str)
+        market_price = float(market_price_str)
+        discount_price = float(discount_price_str) if discount_price_str else market_price
 
         execute(
-            "INSERT INTO orders (customer, product, amount, status) VALUES (%s, %s, %s, '待处理')",
-            (customer, product, amount)
+            "INSERT INTO orders (customer, product, market_price, discount_price, status) VALUES (%s, %s, %s, %s, '待处理')",
+            (customer, product, market_price, discount_price)
         )
         return redirect('/main/list')
     except ValueError:
@@ -60,46 +63,50 @@ def create_order():
         print(f"Error creating order: {e}")
         return "创建订单失败", 500
 
+
 @ma.route('/main/edit/<int:order_id>', methods=["GET", "POST"])
 def edit_order(order_id):
     user_level = session.get('user_level', '')
     is_regular = (user_level not in ('管理员',))
 
     if request.method == "GET":
-        row = fetch_one("SELECT id, customer, product, amount, status, create_time FROM orders WHERE id=%s", (order_id,))
+        row = fetch_one("SELECT id, customer, product, market_price, discount_price, status, create_time FROM orders WHERE id=%s", (order_id,))
         if not row:
             return "订单不存在", 404
         order = {
             "id": row[0],
             "customer": row[1],
             "product": row[2],
-            "amount": row[3],
-            "status": row[4],
-            "create_time": row[5]
+            "market_price": float(row[3]),
+            "discount_price": float(row[4]),
+            "status": row[5],
+            "create_time": row[6]
         }
         return render_template("orders/edit.html", order=order, is_regular=is_regular)
 
     try:
         customer = request.form.get("customer")
         product = request.form.get("product")
-        amount_str = request.form.get("amount")
+        market_price_str = request.form.get("market_price")
+        discount_price_str = request.form.get("discount_price")
         status = request.form.get("status")
 
-        if not customer or not product or not amount_str:
+        if not customer or not product or not market_price_str:
             return "缺少必要字段", 400
 
-        amount = float(amount_str)
+        market_price = float(market_price_str)
+        discount_price = float(discount_price_str) if discount_price_str else market_price
 
         if is_regular:
-            # 普通用户：只更新提单人和商品，金额和状态保持原值
-            row = fetch_one("SELECT amount, status FROM orders WHERE id=%s", (order_id,))
+            row = fetch_one("SELECT market_price, discount_price, status FROM orders WHERE id=%s", (order_id,))
             if row:
-                amount = float(row[0])
-                status = row[1]
+                market_price = float(row[0])
+                discount_price = float(row[1])
+                status = row[2]
 
         execute(
-            "UPDATE orders SET customer=%s, product=%s, amount=%s, status=%s WHERE id=%s",
-            (customer, product, amount, status, order_id)
+            "UPDATE orders SET customer=%s, product=%s, market_price=%s, discount_price=%s, status=%s WHERE id=%s",
+            (customer, product, market_price, discount_price, status, order_id)
         )
         return redirect('/main/list')
     except ValueError:
@@ -120,19 +127,20 @@ def delete_order(order_id):
     return redirect('/main/list')
 
 
-# ========== JSON API（弹窗使用） ==========
+# ========== JSON API ==========
 
 @ma.route('/main/get_order/<int:order_id>', methods=["GET"])
 def get_order(order_id):
-    row = fetch_one("SELECT id, customer, product, amount, status FROM orders WHERE id=%s", (order_id,))
+    row = fetch_one("SELECT id, customer, product, market_price, discount_price, status FROM orders WHERE id=%s", (order_id,))
     if not row:
         return jsonify({"error": "订单不存在"}), 404
     return jsonify({
         "id": row[0],
         "customer": row[1],
         "product": row[2],
-        "amount": float(row[3]),
-        "status": row[4]
+        "market_price": float(row[3]),
+        "discount_price": float(row[4]),
+        "status": row[5]
     })
 
 
@@ -141,15 +149,18 @@ def api_create_order():
     try:
         customer = request.form.get("customer")
         product = request.form.get("product")
-        amount_str = request.form.get("amount")
+        market_price_str = request.form.get("market_price")
+        discount_price_str = request.form.get("discount_price")
 
-        if not customer or not product or not amount_str:
+        if not customer or not product or not market_price_str:
             return jsonify({"error": "缺少必要字段"}), 400
 
-        amount = float(amount_str)
+        market_price = float(market_price_str)
+        discount_price = float(discount_price_str) if discount_price_str else market_price
+
         new_id = execute(
-            "INSERT INTO orders (customer, product, amount, status) VALUES (%s, %s, %s, '待处理')",
-            (customer, product, amount)
+            "INSERT INTO orders (customer, product, market_price, discount_price, status) VALUES (%s, %s, %s, %s, '待处理')",
+            (customer, product, market_price, discount_price)
         )
         return jsonify({"success": True, "id": new_id})
     except ValueError:
@@ -165,7 +176,7 @@ def logistics_ship():
     if user_level not in ('管理员', '物流仓管员', '物流专员'):
         return redirect('/main/list')
     rows = fetch_all(
-        "SELECT id, customer, product, amount, create_time FROM orders WHERE status='待发货' ORDER BY create_time DESC"
+        "SELECT id, customer, product, market_price, discount_price, create_time FROM orders WHERE status='待发货' ORDER BY create_time DESC"
     )
     orders = []
     for r in rows:
@@ -173,8 +184,9 @@ def logistics_ship():
             "id": r[0],
             "customer": r[1],
             "product": r[2],
-            "amount": float(r[3]),
-            "create_time": r[4].strftime("%Y-%m-%d %H:%M:%S") if r[4] else ""
+            "market_price": float(r[3]),
+            "discount_price": float(r[4]),
+            "create_time": r[5].strftime("%Y-%m-%d %H:%M:%S") if r[5] else ""
         })
     return render_template("logistics/index.html", orders=orders)
 
@@ -197,24 +209,26 @@ def api_edit_order(order_id):
     try:
         customer = request.form.get("customer")
         product = request.form.get("product")
-        amount_str = request.form.get("amount")
+        market_price_str = request.form.get("market_price")
+        discount_price_str = request.form.get("discount_price")
         status = request.form.get("status")
 
-        if not customer or not product or not amount_str:
+        if not customer or not product or not market_price_str:
             return jsonify({"error": "缺少必要字段"}), 400
 
-        amount = float(amount_str)
+        market_price = float(market_price_str)
+        discount_price = float(discount_price_str) if discount_price_str else market_price
 
         if is_regular:
-            # 普通用户：从数据库读取原金额和状态
-            row = fetch_one("SELECT amount, status FROM orders WHERE id=%s", (order_id,))
+            row = fetch_one("SELECT market_price, discount_price, status FROM orders WHERE id=%s", (order_id,))
             if row:
-                amount = float(row[0])
-                status = row[1]
+                market_price = float(row[0])
+                discount_price = float(row[1])
+                status = row[2]
 
         execute(
-            "UPDATE orders SET customer=%s, product=%s, amount=%s, status=%s WHERE id=%s",
-            (customer, product, amount, status, order_id)
+            "UPDATE orders SET customer=%s, product=%s, market_price=%s, discount_price=%s, status=%s WHERE id=%s",
+            (customer, product, market_price, discount_price, status, order_id)
         )
         return jsonify({"success": True})
     except ValueError:
