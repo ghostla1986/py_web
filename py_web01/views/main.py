@@ -64,9 +64,11 @@ def create_order():
         market_price = float(market_price_str)
         discount_price = float(discount_price_str) if discount_price_str else market_price
 
+        user_level = session.get('user_level', '')
+        status = '待发货' if user_level == '管理员' else '待处理'
         execute(
-            "INSERT INTO orders (customer, product, market_price, discount_price, status) VALUES (%s, %s, %s, %s, '待处理')",
-            (customer, product, market_price, discount_price)
+            "INSERT INTO orders (customer, product, market_price, discount_price, status) VALUES (%s, %s, %s, %s, %s)",
+            (customer, product, market_price, discount_price, status)
         )
         return redirect('/main/list')
     except ValueError:
@@ -170,9 +172,11 @@ def api_create_order():
         market_price = float(market_price_str)
         discount_price = float(discount_price_str) if discount_price_str else market_price
 
+        user_level = session.get('user_level', '')
+        status = '待发货' if user_level == '管理员' else '待处理'
         new_id = execute(
-            "INSERT INTO orders (customer, product, market_price, discount_price, status) VALUES (%s, %s, %s, %s, '待处理')",
-            (customer, product, market_price, discount_price)
+            "INSERT INTO orders (customer, product, market_price, discount_price, status) VALUES (%s, %s, %s, %s, %s)",
+            (customer, product, market_price, discount_price, status)
         )
         return jsonify({"success": True, "id": new_id})
     except ValueError:

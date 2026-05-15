@@ -85,6 +85,7 @@
     }
     .btn-edit { color: #4dabf7; }
     .btn-delete { color: #ff6b6b; }
+    .btn-ship-order { color: #f9a825; font-weight:600; }
     .btn-save { color: #2f9e44; }
     .action-link:hover { text-decoration: underline; }
 
@@ -166,6 +167,10 @@
                         {% else %}
                         <span class="action-link btn-edit" style="color:#ccc;cursor:default;">编辑</span>
                         {% endif %}
+                        {% if o.status == '待发货' %}
+                        <span class="action-sep" style="color: #ddd;">|</span>
+                        <button class="action-link btn-ship-order" onclick="shipFromOrder({{ o.id }}, '{{ o.customer }}', '{{ o.product }}', {{ o.discount_price }})">发货</button>
+                        {% endif %}
                         <span class="action-sep" style="color: #ddd;">|</span>
                         {% if user_level == '管理员' or o.status in ('待处理', '待发货') %}
                         <form class="inline-delete-form" method="post" action="/main/delete/{{ o.id }}" onsubmit="return confirm('确定删除订单 #{{ o.id }} 吗？')">
@@ -192,6 +197,18 @@ var currentSort = '{{ sort }}';
 function toggleSort() {
     var newSort = (currentSort === 'asc') ? 'desc' : 'asc';
     window.location.href = '/main/list?sort=' + newSort;
+}
+
+function shipFromOrder(orderId, customer, product, amount) {
+    if (confirm('确认发货？\n\n用户：' + customer + '\n商品：' + product + '\n售出价：¥' + amount.toFixed(2) + '\n\n请确认商品信息和金额无误。')) {
+        fetch('/main/ship/' + orderId, { method: 'POST', body: new FormData() })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) { location.reload(); }
+                else { alert(data.error || '操作失败'); }
+            })
+            .catch(function() { alert('网络错误'); });
+    }
 }
 
 /* ======================= 新建订单（插入行） ======================= */
