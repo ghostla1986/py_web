@@ -84,11 +84,14 @@
             <thead>
                 <tr>
                     <th>序号</th>
-                    <th>提单人</th>
+                    <th>用户</th>
                     <th>商品</th>
-                    <th>市场售价</th>
-                    <th>优惠售价</th>
-                    <th>创建时间</th>
+                    <th>市场价</th>
+                    <th>售出价</th>
+                    <th style="cursor:pointer;user-select:none;" onclick="toggleSort()">
+                        创建时间
+                        <span id="sortIcon" style="margin-left:4px;font-size:12px;color:#999;">{% if sort == 'asc' %}▲{% else %}▼{% endif %}</span>
+                    </th>
                     <th style="text-align: center;">操作</th>
                 </tr>
             </thead>
@@ -118,6 +121,13 @@
 </div>
 
 <script>
+var currentSort = '{{ sort }}';
+
+function toggleSort() {
+    var newSort = (currentSort === 'asc') ? 'desc' : 'asc';
+    window.location.href = '/main/ship_list?sort=' + newSort;
+}
+
 function shipOrder(orderId, customer, product, amount) {
     if (confirm('确认发货？\n\n提单人：' + customer + '\n商品：' + product + '\n优惠售价：¥' + amount.toFixed(2) + '\n\n请确认商品信息和金额无误。')) {
         fetch('/main/ship/' + orderId, { method: 'POST', body: new FormData() })

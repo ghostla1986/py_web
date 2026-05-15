@@ -187,8 +187,12 @@ def logistics_ship():
     user_level = session.get('user_level', '')
     if user_level not in ('管理员', '物流仓管员', '物流专员'):
         return redirect('/main/list')
+    sort = request.args.get('sort', 'desc')
+    if sort not in ('asc', 'desc'):
+        sort = 'desc'
+    time_order = "ASC" if sort == 'asc' else "DESC"
     rows = fetch_all(
-        "SELECT id, customer, product, market_price, discount_price, create_time FROM orders WHERE status='待发货' ORDER BY create_time DESC"
+        f"SELECT id, customer, product, market_price, discount_price, create_time FROM orders WHERE status='待发货' ORDER BY create_time {time_order}"
     )
     orders = []
     for r in rows:
@@ -200,7 +204,7 @@ def logistics_ship():
             "discount_price": float(r[4]),
             "create_time": r[5].strftime("%Y-%m-%d %H:%M:%S") if r[5] else ""
         })
-    return render_template("logistics/index.html", orders=orders)
+    return render_template("logistics/index.html", orders=orders, sort=sort)
 
 
 @ma.route('/main/ship/<int:order_id>', methods=["POST"])
