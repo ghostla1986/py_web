@@ -133,13 +133,16 @@
             <thead>
                 <tr>
                     <th>序号</th>
-                    <th>提单人</th>
+                    <th>用户</th>
                     <th>商品</th>
-                    <th>市场售价</th>
+                    <th>市场价</th>
                     <th>折扣率</th>
-                    <th>优惠售价</th>
+                    <th>售出价</th>
                     <th>状态</th>
-                    <th>创建时间</th>
+                    <th style="cursor:pointer;user-select:none;" onclick="toggleSort()">
+                        创建时间
+                        <span id="sortIcon" style="margin-left:4px;font-size:12px;color:#999;">{% if sort == 'asc' %}▲{% else %}▼{% endif %}</span>
+                    </th>
                     <th style="text-align: center;">操作</th>
                 </tr>
             </thead>
@@ -184,6 +187,12 @@ var editingId = null;
 var nextNewId = -1;
 var userLevel = '{{ session.get("user_level", "") }}';
 var originalValues = {};
+var currentSort = '{{ sort }}';
+
+function toggleSort() {
+    var newSort = (currentSort === 'asc') ? 'desc' : 'asc';
+    window.location.href = '/main/list?sort=' + newSort;
+}
 
 /* ======================= 新建订单（插入行） ======================= */
 function addNewRow() {

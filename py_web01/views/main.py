@@ -11,12 +11,16 @@ ma = Blueprint("main", __name__)
 def main_list():
     user_name = session.get('user_name', '')
     user_level = session.get('user_level', '')
+    sort = request.args.get('sort', 'desc')
+    if sort not in ('asc', 'desc'):
+        sort = 'desc'
+    time_order = "ASC" if sort == 'asc' else "DESC"
     if user_level in ('物流仓管员', '物流专员'):
         return redirect('/main/ship_list')
     if user_level == '管理员':
-        rows = fetch_all("SELECT id, customer, product, market_price, discount_price, status, create_time FROM orders ORDER BY FIELD(status, '待处理', '待发货', '已配送', '已送达', '已退回'), create_time DESC")
+        rows = fetch_all(f"SELECT id, customer, product, market_price, discount_price, status, create_time FROM orders ORDER BY FIELD(status, '待处理', '待发货', '已配送', '已送达', '已退回'), create_time {time_order}")
     else:
-        rows = fetch_all("SELECT id, customer, product, market_price, discount_price, status, create_time FROM orders WHERE customer=%s ORDER BY create_time DESC", (user_name,))
+        rows = fetch_all(f"SELECT id, customer, product, market_price, discount_price, status, create_time FROM orders WHERE customer=%s ORDER BY create_time {time_order}", (user_name,))
     orders = []
     for r in rows:
         market_price = float(r[3])
@@ -38,7 +42,7 @@ def main_list():
     # 当前用户折扣率
     disc_row = fetch_one("SELECT discount FROM user_info WHERE user=%s", (user_name,))
     user_discount = float(disc_row[0]) if disc_row else 1.0
-    return render_template("orders/list.html", orders=orders, products=products, user_discount=user_discount)
+    return render_template("orders/list.html", orders=orders, products=products, user_discount=user_discount, sort=sort)
 
 
 @ma.route('/main/create', methods=["GET", "POST"])
