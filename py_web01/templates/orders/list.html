@@ -386,8 +386,9 @@ function startEdit(orderId) {
     }
 
     // 折扣率下拉：100%到用户可享受最大折扣之间（所有人可编辑）
+    var minRateEdit = Math.ceil({{ user_discount }} * 100);
     var rateOpts = '';
-    for (var r = 100; r >= 20; r -= 5) {
+    for (var r = 100; r >= minRateEdit; r -= 5) {
         var sel = (r === curRateNum) ? ' selected' : '';
         rateOpts += '<option value="' + (r / 100).toFixed(2) + '"' + sel + '>' + r + '%</option>';
     }
