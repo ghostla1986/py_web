@@ -113,16 +113,24 @@
                 <span class="nav-icon">📋</span> 订单管理
             </a>
             {% endif %}
-            {% if session.get('user_level') == '管理员' %}
+            {% set ul = session.get('user_level', '') %}
+            {% if ul == '管理员' %}
             <a href="/users/audit" class="nav-item" style="padding-left:44px;font-size:14px;{% if request.path.startswith('/users/audit') %}color:#38bdf8;border-left-color:#38bdf8;background:#334155;{% endif %}">
                 <span style="margin-right:8px;">▸</span> 订单审核
+            </a>
+            <a href="/users/discount_audit" class="nav-item" style="padding-left:44px;font-size:14px;{% if request.path.startswith('/users/discount_audit') %}color:#38bdf8;border-left-color:#38bdf8;background:#334155;{% endif %}">
+                <span style="margin-right:8px;">▸</span> 折扣审核
+            </a>
+            {% endif %}
+            {% if ul == '普通用户' %}
+            <a href="/users/discount_request" class="nav-item" style="padding-left:44px;font-size:14px;{% if request.path.startswith('/users/discount_request') %}color:#38bdf8;border-left-color:#38bdf8;background:#334155;{% endif %}">
+                <span style="margin-right:8px;">▸</span> 折扣申请
             </a>
             {% endif %}
             {% if session.get('user_level') in ('管理员', '物流仓管员', '物流专员') %}
             <a href="/main/ship_list" class="nav-item {% if request.path.startswith('/main/ship') %}active{% endif %}">
                 <span class="nav-icon">🚚</span> 物流管理
             </a>
-            {% set ul = session.get('user_level', '') %}
             <a href="/inventory/list" class="nav-item {% if request.path == '/inventory/list' %}active{% endif %}">
                 <span class="nav-icon">📦</span> 库存管理
             </a>
