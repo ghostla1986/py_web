@@ -373,38 +373,41 @@ function startEdit(orderId) {
     var discountVal = currentDiscount.replace('¥', '').replace(/,/g, '').trim();
     var curRateNum = parseInt(currentRate) || 100;
 
-    // 提单人字段
-    if (isAdmin) {
-        customerCell.innerHTML = '<input type="text" class="edit-input" id="edit-customer-' + orderId + '" value="' + currentCustomer + '">';
-    } else {
-        customerCell.innerHTML = '<strong>' + currentCustomer + '</strong>';
-    }
+    // 全表居中
+    row.querySelectorAll('td').forEach(function(td) { td.style.textAlign = 'center'; });
 
-    // 商品字段
+    // 用户（所有人只读锁定）
+    customerCell.innerHTML = '<strong>' + currentCustomer + '</strong>';
+
+    // 商品下拉（管理员：下拉按库存，宽度2/3；普通用户：只读）
     if (isAdmin) {
-        productCell.innerHTML = '<input type="text" class="edit-input" id="edit-product-' + orderId + '" value="' + currentProduct + '">';
+        var prodOptions = '';
+        {% for p in products %}
+        var selP = '{{ p.product }}' === currentProduct ? ' selected' : '';
+        prodOptions += '<option value="{{ p.product }}"' + selP + '>{{ p.product }}</option>';
+        {% endfor %}
+        productCell.innerHTML = '<select class="edit-select" id="edit-product-' + orderId + '" style="width:66%;">' + prodOptions + '</select>';
     } else {
         productCell.innerHTML = currentProduct;
     }
 
-    // 市场售价
+    // 市场售价（管理员：可编辑，宽度3/5；普通用户：只读）
     if (isAdmin) {
-        marketCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-market-' + orderId + '" value="' + marketVal + '" oninput="recalcEditDiscount(' + orderId + ')">';
+        marketCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-market-' + orderId + '" value="' + marketVal + '" style="width:60%;" oninput="recalcEditDiscount(' + orderId + ')">';
     } else {
         marketCell.innerHTML = '<span class="amount-text">' + currentMarket + '</span>';
     }
 
-    // 折扣率下拉：100%到用户可享受最大折扣之间（所有人可编辑）
-    var minRateEdit = Math.ceil({{ user_discount }} * 100);
+    // 折扣率下拉：30%~100%，每5%一档（所有人可编辑，自适应宽度）
     var rateOpts = '';
-    for (var r = 100; r >= minRateEdit; r -= 5) {
+    for (var r = 100; r >= 30; r -= 5) {
         var sel = (r === curRateNum) ? ' selected' : '';
         rateOpts += '<option value="' + (r / 100).toFixed(2) + '"' + sel + '>' + r + '%</option>';
     }
-    rateCell.innerHTML = '<select class="edit-select" id="edit-rate-' + orderId + '" style="width:100%;">' + rateOpts + '</select>';
+    rateCell.innerHTML = '<select class="edit-select" id="edit-rate-' + orderId + '" style="width:auto;min-width:70px;">' + rateOpts + '</select>';
 
-    // 优惠售价（所有人只读，由联动自动计算）
-    discountCell.innerHTML = '<input type="text" class="edit-input" id="edit-discount-' + orderId + '" value="' + discountVal + '" readonly style="background:#f5f5f5;color:#2f9e44;">';
+    // 售出价（所有人只读，宽度1/2）
+    discountCell.innerHTML = '<input type="text" class="edit-input" id="edit-discount-' + orderId + '" value="' + discountVal + '" readonly style="width:50%;background:#f5f5f5;color:#2f9e44;">';
 
     // 用 JS 绑定事件，确保联动生效
     setTimeout(function() {
@@ -423,7 +426,7 @@ function startEdit(orderId) {
     // 状态字段
     if (userLevel === '管理员') {
         var statusOptions = ['待处理', '待发货', '已配送', '已送达'];
-        var statusHtml = '<select class="edit-select" id="edit-status-' + orderId + '">';
+        var statusHtml = '<select class="edit-select" id="edit-status-' + orderId + '" style="width:auto;">';
         for (var i = 0; i < statusOptions.length; i++) {
             var selected = statusOptions[i] === currentStatus ? ' selected' : '';
             statusHtml += '<option value="' + statusOptions[i] + '"' + selected + '>' + statusOptions[i] + '</option>';
