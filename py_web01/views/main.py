@@ -28,7 +28,9 @@ def main_list():
             "status": r[4],
             "create_time": r[5].strftime("%Y-%m-%d %H:%M:%S") if r[5] else ""
         })
-    return render_template("orders/list.html", orders=orders)
+    prod_rows = fetch_all("SELECT product, price FROM inventory WHERE audit_status='已通过' ORDER BY product")
+    products = [{"product": r[0], "price": float(r[1])} for r in prod_rows]
+    return render_template("orders/list.html", orders=orders, products=products)
 
 @ma.route('/main/create', methods=["GET", "POST"])
 def create_order():
