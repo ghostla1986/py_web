@@ -201,6 +201,14 @@ function addNewRow() {
     var username = '{{ session.get("user_name", "") }}';
 
     var userDiscount = {{ user_discount }};
+    // 生成折扣率下拉选项
+    var rateOptions = '';
+    for (var r = 5; r <= 95; r += 5) {
+        var rateVal = (r / 100).toFixed(2);
+        var selected = (r / 100 === userDiscount) ? ' selected' : '';
+        rateOptions += '<option value="' + rateVal + '"' + selected + '>' + r + '%</option>';
+    }
+
     newRow.innerHTML = '<td class="index-cell" style="color:#aaa;">新增</td>' +
         '<td class="customer-cell"><input type="text" class="edit-input" id="new-customer-' + newId + '" value="' + username + '" readonly style="background:#f5f5f5;color:#666;"></td>' +
         '<td class="product-cell"><select class="edit-select" id="new-product-' + newId + '" style="width:100%;">' +
@@ -210,7 +218,7 @@ function addNewRow() {
             {% endfor %}
         '</select></td>' +
         '<td class="market-cell"><input type="text" class="edit-input" id="new-market-' + newId + '" readonly placeholder="自动填充" style="background:#f5f5f5;color:#666;"></td>' +
-        '<td class="rate-cell" style="color:#2f9e44;font-weight:600;">' + (userDiscount * 100).toFixed(0) + '%</td>' +
+        '<td class="rate-cell"><select class="edit-select" id="new-rate-' + newId + '" style="width:100%;" onchange="recalcDiscount(' + newId + ')">' + rateOptions + '</select></td>' +
         '<td class="discount-cell"><input type="text" class="edit-input" id="new-discount-' + newId + '" readonly placeholder="自动计算" style="background:#f5f5f5;color:#2f9e44;"></td>' +
         '<td><span class="status-badge status-待处理">待处理</span></td>' +
         '<td style="color:#aaa;font-size:14px;">新建</td>' +
@@ -225,16 +233,11 @@ function addNewRow() {
 
     // 商品下拉切换时自动填充市场售价，并按折扣率计算优惠售价
     document.getElementById('new-product-' + newId).addEventListener('change', function() {
-        var sel = this;
-        var selected = sel.options[sel.selectedIndex];
-        var price = selected.getAttribute('data-price');
-        if (price) {
-            var marketVal = parseFloat(price);
-            document.getElementById('new-market-' + newId).value = marketVal.toFixed(2);
-            var discountVal = marketVal * userDiscount;
-            document.getElementById('new-discount-' + newId).value = discountVal.toFixed(2);
-        }
+        recalcDiscount(newId);
     });
+
+    // 触发一次初始计算（如果商品已选）
+    recalcDiscount(newId);
 }
 
 function cancelNew(rowId) {
@@ -267,6 +270,34 @@ function saveNew(rowId) {
         .catch(function() { alert('网络错误'); });
 }
 
+/* ======================= 折扣率联动计算 ======================= */
+function recalcEditDiscount(orderId) {
+    var marketInput = document.getElementById('edit-market-' + orderId);
+    var rateSelect = document.getElementById('edit-rate-' + orderId);
+    var discountInput = document.getElementById('edit-discount-' + orderId);
+    if (marketInput && rateSelect && discountInput && marketInput.value) {
+        var marketVal = parseFloat(marketInput.value);
+        var rateVal = parseFloat(rateSelect.value);
+        if (!isNaN(marketVal) && !isNaN(rateVal)) {
+            discountInput.value = (marketVal * rateVal).toFixed(2);
+        }
+    }
+}
+
+/* ======================= 折扣率联动计算 ======================= */
+function recalcDiscount(rowId) {
+    var marketInput = document.getElementById('new-market-' + rowId);
+    var rateSelect = document.getElementById('new-rate-' + rowId);
+    var discountInput = document.getElementById('new-discount-' + rowId);
+    if (marketInput && rateSelect && discountInput && marketInput.value) {
+        var marketVal = parseFloat(marketInput.value);
+        var rateVal = parseFloat(rateSelect.value);
+        if (!isNaN(marketVal) && !isNaN(rateVal)) {
+            discountInput.value = (marketVal * rateVal).toFixed(2);
+        }
+    }
+}
+
 /* ======================= 行内编辑 ======================= */
 
 function startEdit(orderId) {
@@ -284,6 +315,7 @@ function startEdit(orderId) {
     var customerCell = row.querySelector('.customer-cell');
     var productCell = row.querySelector('.product-cell');
     var marketCell = row.querySelector('.market-cell');
+    var rateCell = row.querySelector('.rate-cell');
     var discountCell = row.querySelector('.discount-cell');
     var statusCell = row.querySelector('.status-cell');
     var editBtn = document.getElementById('edit-btn-' + orderId);
@@ -291,6 +323,7 @@ function startEdit(orderId) {
     var currentCustomer = customerCell.textContent.trim();
     var currentProduct = productCell.textContent.trim();
     var currentMarket = marketCell.textContent.trim();
+    var currentRate = rateCell.textContent.trim().replace('%', '');
     var currentDiscount = discountCell.textContent.trim();
     var currentStatus = statusCell.textContent.trim();
 
@@ -299,6 +332,7 @@ function startEdit(orderId) {
         customer: currentCustomer,
         product: currentProduct,
         market: currentMarket,
+        rate: currentRate,
         discount: currentDiscount,
         status: currentStatus
     };
@@ -313,7 +347,15 @@ function startEdit(orderId) {
     var marketVal = currentMarket.replace('¥', '').replace(/,/g, '').trim();
     var discountVal = currentDiscount.replace('¥', '').replace(/,/g, '').trim();
     if (userLevel === '管理员') {
-        marketCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-market-' + orderId + '" value="' + marketVal + '">';
+        marketCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-market-' + orderId + '" value="' + marketVal + '" onchange="recalcEditDiscount(' + orderId + ')">';
+        // 折扣率下拉
+        var curRateNum = parseInt(currentRate) || 100;
+        var rateOpts = '';
+        for (var r = 5; r <= 95; r += 5) {
+            var sel = (r === curRateNum) ? ' selected' : '';
+            rateOpts += '<option value="' + (r / 100) + '"' + sel + '>' + r + '%</option>';
+        }
+        rateCell.innerHTML = '<select class="edit-select" id="edit-rate-' + orderId + '" style="width:100%;" onchange="recalcEditDiscount(' + orderId + ')">' + rateOpts + '</select>';
         discountCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-discount-' + orderId + '" value="' + discountVal + '">';
     } else {
         marketCell.innerHTML = '<span class="amount-text">' + currentMarket + '</span>';
@@ -367,6 +409,7 @@ function cancelEdit(orderId) {
     var customerCell = row.querySelector('.customer-cell');
     var productCell = row.querySelector('.product-cell');
     var marketCell = row.querySelector('.market-cell');
+    var rateCell = row.querySelector('.rate-cell');
     var discountCell = row.querySelector('.discount-cell');
     var statusCell = row.querySelector('.status-cell');
     var editBtn = document.getElementById('edit-btn-' + orderId);
@@ -375,6 +418,7 @@ function cancelEdit(orderId) {
     customerCell.innerHTML = '<strong>' + orig.customer + '</strong>';
     productCell.textContent = orig.product;
     marketCell.innerHTML = '<span class="amount-text">' + orig.market + '</span>';
+    rateCell.innerHTML = '<span style="color:#2f9e44;font-weight:600;">' + orig.rate + '%</span>';
     discountCell.innerHTML = '<span class="amount-text">' + orig.discount + '</span>';
     statusCell.innerHTML = '<span class="status-badge status-' + orig.status + '">' + orig.status + '</span>';
 
@@ -415,6 +459,8 @@ function saveEdit(orderId) {
         fd.append('market_price', marketPrice);
         fd.append('discount_price', discountPrice);
         fd.append('status', status);
+        // 注意：折扣率的修改不在此处处理，它在新建时由前端计算discount_price后提交
+        // 编辑时修改折扣率会联动更新discount_price，通过discount_price字段提交
     }
 
     fetch('/main/api_edit/' + orderId, { method: 'POST', body: fd })
