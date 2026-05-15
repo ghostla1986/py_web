@@ -228,7 +228,11 @@ def api_edit_order(order_id):
         if is_regular:
             # 普通用户：只更新 discount_price，其他字段保持原值
             market_price = float(row[2])
-            discount_price = float(discount_price_str) if discount_price_str else float(row[3])
+            # discount_price 为 0 或空时保持原值（避免前端空传）
+            if discount_price_str and float(discount_price_str) > 0:
+                discount_price = float(discount_price_str)
+            else:
+                discount_price = float(row[3])
             customer = row[0]
             product = row[1]
         else:
