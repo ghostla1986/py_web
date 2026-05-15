@@ -137,22 +137,22 @@
         <table class="table table-hover" id="inventoryTable">
             <thead>
                 <tr>
-                    <th>序号</th>
-                    <th>商品</th>
-                    <th>市场价</th>
-                    <th>剩余数量</th>
-                    <th>出库数量</th>
-                    <th>总量</th>
+                    <th style="text-align:center;">序号</th>
+                    <th style="text-align:center;">商品</th>
+                    <th style="text-align:center;">市场价</th>
+                    <th style="text-align:center;">剩余数量</th>
+                    <th style="text-align:center;">出库数量</th>
+                    <th style="text-align:center;">总量</th>
                     <th style="text-align: center;">操作</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in inventory %}
                 <tr id="item-row-{{ item.id }}" data-id="{{ item.id }}">
-                    <td class="index-cell">{{ loop.index }}</td>
-                    <td class="product-cell"><strong>{{ item.product }}</strong></td>
-                    <td class="price-cell price-text">¥{{ "{:,.2f}".format(item.price) }}</td>
-                    <td class="remaining-cell">
+                    <td class="index-cell" style="text-align:center;">{{ loop.index }}</td>
+                    <td class="product-cell" style="text-align:center;"><strong>{{ item.product }}</strong></td>
+                    <td class="price-cell price-text" style="text-align:center;">¥{{ "{:,.2f}".format(item.price) }}</td>
+                    <td class="remaining-cell" style="text-align:center;">
                         <span class="quantity-text {% if item.remaining_qty <= 10 %}quantity-low{% endif %}">{{ item.remaining_qty }}</span>
                         <div class="stock-bar">
                             <div class="stock-bar-fill" style="width: {{ (item.remaining_qty / item.total_qty * 100) if item.total_qty > 0 else 0 }}%; background-color: {% if item.remaining_qty <= 10 %}#e03131{% elif item.remaining_qty <= 50 %}#f9a825{% else %}#2f9e44{% endif %};"></div>
@@ -160,7 +160,7 @@
                     </td>
                     <td class="outbound-cell quantity-text" style="text-align:center;">{{ item.outbound_qty }}</td>
                     <td class="total-cell quantity-text" style="text-align:center;">{{ item.total_qty }}</td>
-                    <td style="text-align: center;">
+                    <td style="text-align:center;">
                         {% set ul = session.get('user_level', '') %}
                         {% if ul == '管理员' %}
                         <button class="action-link btn-edit" onclick="startEditAdmin({{ item.id }})" id="edit-btn-{{ item.id }}">编辑</button>
