@@ -226,8 +226,8 @@ function addNewRow() {
 
     var username = '{{ session.get("user_name", "") }}';
 
-    var minNewRate = Math.ceil({{ user_discount }} * 100);
-    // 生成折扣率下拉选项：100%到用户最大折扣之间，5%一档
+    // 管理员固定30%，普通用户下限受最大折扣限制
+    var minNewRate = (userLevel === '管理员') ? 30 : Math.ceil({{ user_discount }} * 100);
     var rateOptions = '';
     for (var r = 100; r >= minNewRate; r -= 5) {
         var rateVal = (r / 100).toFixed(2);
@@ -416,8 +416,8 @@ function startEdit(orderId) {
         marketCell.innerHTML = '<span class="amount-text">' + currentMarket + '</span>';
     }
 
-    // 折扣率下拉：100%到用户最大折扣，每5%一档（所有人可编辑，自适应宽度）
-    var minEditRate = Math.ceil({{ user_discount }} * 100);
+    // 管理员固定30%，普通用户下限受最大折扣限制
+    var minEditRate = (isAdmin) ? 30 : Math.ceil({{ user_discount }} * 100);
     var rateOpts = '';
     for (var r = 100; r >= minEditRate; r -= 5) {
         var sel = (r === curRateNum) ? ' selected' : '';
