@@ -226,9 +226,10 @@ function addNewRow() {
 
     var username = '{{ session.get("user_name", "") }}';
 
-    // 生成折扣率下拉选项：100%到20%之间，5%一档
+    var minNewRate = Math.ceil({{ user_discount }} * 100);
+    // 生成折扣率下拉选项：100%到用户最大折扣之间，5%一档
     var rateOptions = '';
-    for (var r = 100; r >= 20; r -= 5) {
+    for (var r = 100; r >= minNewRate; r -= 5) {
         var rateVal = (r / 100).toFixed(2);
         var selected = (r === 100) ? ' selected' : '';
         rateOptions += '<option value="' + rateVal + '"' + selected + '>' + r + '%</option>';
