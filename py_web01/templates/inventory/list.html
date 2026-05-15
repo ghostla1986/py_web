@@ -129,7 +129,7 @@
         <h2 class="page-title">库存管理</h2>
         {% set ul = session.get('user_level', '') %}
         {% if ul in ('管理员', '物流仓管员', '物流专员') %}
-        <a href="/inventory/create" class="btn btn-primary btn-create">+ 添加商品</a>
+        <button class="btn btn-primary btn-create" onclick="addNewRow()">+ 添加商品</button>
         {% endif %}
     </div>
 
@@ -374,6 +374,70 @@ function cancelEdit(itemId) {
 
     delete originalValues[itemId];
     if (editingId === itemId) editingId = null;
+}
+
+/* ======================= 添加商品（插入行） ======================= */
+var nextNewId = -1;
+
+function addNewRow() {
+    if (editingId) {
+        if (editingId < 0) {
+            var oldRow = document.getElementById('item-row-' + editingId);
+            if (oldRow) oldRow.remove();
+        } else {
+            cancelEdit(editingId);
+        }
+    }
+
+    var tbody = document.querySelector('#inventoryTable tbody');
+    var newId = nextNewId--;
+    var newRow = document.createElement('tr');
+    newRow.id = 'item-row-' + newId;
+    newRow.className = 'edit-row';
+
+    newRow.innerHTML = '<td style="text-align:center;color:#aaa;">新增</td>' +
+        '<td class="product-cell" style="text-align:center;"><input type="text" class="edit-input" id="new-product-' + newId + '" placeholder="输入商品名" style="width:80%;"></td>' +
+        '<td class="price-cell" style="text-align:center;"><input type="number" step="0.01" class="edit-input" id="new-price-' + newId + '" placeholder="市场价" style="width:60%;"></td>' +
+        '<td class="remaining-cell" style="text-align:center;">—</td>' +
+        '<td class="outbound-cell" style="text-align:center;">0</td>' +
+        '<td class="total-cell" style="text-align:center;"><input type="number" class="edit-input" id="new-total-' + newId + '" placeholder="总量" style="width:60%;"></td>' +
+        '<td style="text-align:center;">' +
+            '<button class="action-link btn-save" onclick="saveNewItem(' + newId + ')">保存</button>' +
+            '<span style="color:#ddd;">|</span>' +
+            '<button class="action-link btn-delete" onclick="cancelNewItem(' + newId + ')">取消</button>' +
+        '</td>';
+
+    tbody.insertBefore(newRow, tbody.firstChild);
+    editingId = newId;
+}
+
+function cancelNewItem(rowId) {
+    var row = document.getElementById('item-row-' + rowId);
+    if (row) row.remove();
+    if (editingId === rowId) editingId = null;
+}
+
+function saveNewItem(rowId) {
+    var product = document.getElementById('new-product-' + rowId).value.trim();
+    var price = document.getElementById('new-price-' + rowId).value;
+    var total = document.getElementById('new-total-' + rowId).value;
+
+    if (!product) { alert('请输入商品名称'); return; }
+    if (!price || parseFloat(price) <= 0) { alert('请输入有效的市场价'); return; }
+    if (!total || parseInt(total) <= 0) { alert('请输入有效的总数量'); return; }
+
+    var fd = new FormData();
+    fd.append('product', product);
+    fd.append('price', price);
+    fd.append('total_qty', total);
+
+    fetch('/inventory/api_create', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) { location.reload(); }
+            else { alert(data.error || '创建失败'); }
+        })
+        .catch(function() { alert('网络错误'); });
 }
 </script>
 {% endblock %}
