@@ -214,24 +214,28 @@ def api_edit_order(order_id):
     is_regular = (user_level not in ('管理员',))
 
     try:
-        customer = request.form.get("customer")
-        product = request.form.get("product")
+        # 先读取订单原值
+        row = fetch_one("SELECT customer, product, market_price, discount_price, status FROM orders WHERE id=%s", (order_id,))
+        if not row:
+            return jsonify({"error": "订单不存在"}), 404
+
+        customer = request.form.get("customer") or row[0]
+        product = request.form.get("product") or row[1]
         market_price_str = request.form.get("market_price")
         discount_price_str = request.form.get("discount_price")
-        status = request.form.get("status")
-
-        if not customer or not product or not market_price_str:
-            return jsonify({"error": "缺少必要字段"}), 400
-
-        market_price = float(market_price_str)
-        discount_price = float(discount_price_str) if discount_price_str else market_price
+        status = request.form.get("status") or row[4]
 
         if is_regular:
-            row = fetch_one("SELECT market_price, discount_price, status FROM orders WHERE id=%s", (order_id,))
-            if row:
-                market_price = float(row[0])
-                discount_price = float(row[1])
-                status = row[2]
+            # 普通用户：只更新 discount_price，其他字段保持原值
+            market_price = float(row[2])
+            discount_price = float(discount_price_str) if discount_price_str else float(row[3])
+            customer = row[0]
+            product = row[1]
+        else:
+            if not market_price_str:
+                return jsonify({"error": "缺少必要字段"}), 400
+            market_price = float(market_price_str)
+            discount_price = float(discount_price_str) if discount_price_str else market_price
 
         execute(
             "UPDATE orders SET customer=%s, product=%s, market_price=%s, discount_price=%s, status=%s WHERE id=%s",
