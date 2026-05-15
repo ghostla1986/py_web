@@ -132,14 +132,14 @@
         <table class="table table-hover" id="orderTable">
             <thead>
                 <tr>
-                    <th>序号</th>
-                    <th>用户</th>
-                    <th>商品</th>
-                    <th>市场价</th>
-                    <th>折扣率</th>
-                    <th>售出价</th>
-                    <th>状态</th>
-                    <th style="cursor:pointer;user-select:none;" onclick="toggleSort()">
+                    <th style="text-align:center;">序号</th>
+                    <th style="text-align:center;">用户</th>
+                    <th style="text-align:center;">商品</th>
+                    <th style="text-align:center;">市场价</th>
+                    <th style="text-align:center;">折扣率</th>
+                    <th style="text-align:center;">售出价</th>
+                    <th style="text-align:center;">状态</th>
+                    <th style="cursor:pointer;user-select:none;text-align:center;" onclick="toggleSort()">
                         创建时间
                         <span id="sortIcon" style="margin-left:4px;font-size:12px;color:#999;">{% if sort == 'asc' %}▲{% else %}▼{% endif %}</span>
                     </th>
@@ -149,16 +149,16 @@
             <tbody>
                 {% for o in orders %}
                 <tr id="order-row-{{ o.id }}" data-id="{{ o.id }}">
-                    <td class="index-cell">{{ loop.index }}</td>
-                    <td class="customer-cell"><strong>{{ o.customer }}</strong></td>
-                    <td class="product-cell">{{ o.product }}</td>
-                    <td class="market-cell amount-text">¥{{ "{:,.2f}".format(o.market_price) }}</td>
-                    <td class="rate-cell" style="color:#2f9e44;font-weight:600;">{{ "{:.0%}".format(o.discount_rate) }}</td>
-                    <td class="discount-cell amount-text">¥{{ "{:,.2f}".format(o.discount_price) }}</td>
-                    <td class="status-cell">
+                    <td class="index-cell" style="text-align:center;">{{ loop.index }}</td>
+                    <td class="customer-cell" style="text-align:center;"><strong>{{ o.customer }}</strong></td>
+                    <td class="product-cell" style="text-align:center;">{{ o.product }}</td>
+                    <td class="market-cell amount-text" style="text-align:center;">¥{{ "{:,.2f}".format(o.market_price) }}</td>
+                    <td class="rate-cell" style="text-align:center;color:#2f9e44;font-weight:600;">{{ "{:.0%}".format(o.discount_rate) }}</td>
+                    <td class="discount-cell amount-text" style="text-align:center;">¥{{ "{:,.2f}".format(o.discount_price) }}</td>
+                    <td class="status-cell" style="text-align:center;">
                         <span class="status-badge status-{{ o.status }}">{{ o.status }}</span>
                     </td>
-                    <td class="time-cell" style="color: #888; font-size: 14px;">{{ o.create_time }}</td>
+                    <td class="time-cell" style="text-align:center;color: #888; font-size: 14px;">{{ o.create_time }}</td>
                     <td style="text-align: center;">
                         {% set user_level = session.get('user_level', '') %}
                         {% if user_level == '管理员' or o.status == '待处理' %}
@@ -217,19 +217,19 @@ function addNewRow() {
         rateOptions += '<option value="' + rateVal + '"' + selected + '>' + r + '%</option>';
     }
 
-    newRow.innerHTML = '<td class="index-cell" style="color:#aaa;">新增</td>' +
-        '<td class="customer-cell"><input type="text" class="edit-input" id="new-customer-' + newId + '" value="' + username + '" readonly style="background:#f5f5f5;color:#666;"></td>' +
-        '<td class="product-cell"><select class="edit-select" id="new-product-' + newId + '" style="width:100%;">' +
+    newRow.innerHTML = '<td class="index-cell" style="text-align:center;color:#aaa;">新增</td>' +
+        '<td class="customer-cell" style="text-align:center;"><input type="text" class="edit-input" id="new-customer-' + newId + '" value="' + username + '" readonly style="background:#f5f5f5;color:#666;"></td>' +
+        '<td class="product-cell" style="text-align:center;"><select class="edit-select" id="new-product-' + newId + '" style="width:100%;">' +
             '<option value="">请选择商品</option>' +
             {% for p in products %}
             '<option value="{{ p.product }}" data-price="{{ p.price }}">{{ p.product }}（¥{{ "{:.2f}".format(p.price) }}）</option>' +
             {% endfor %}
         '</select></td>' +
-        '<td class="market-cell"><input type="text" class="edit-input" id="new-market-' + newId + '" readonly placeholder="自动填充" style="background:#f5f5f5;color:#666;"></td>' +
-        '<td class="rate-cell"><select class="edit-select" id="new-rate-' + newId + '" style="width:100%;">' + rateOptions + '</select></td>' +
-        '<td class="discount-cell"><input type="text" class="edit-input" id="new-discount-' + newId + '" readonly placeholder="自动计算" style="background:#f5f5f5;color:#2f9e44;"></td>' +
-        '<td><span class="status-badge status-待处理">待处理</span></td>' +
-        '<td style="color:#aaa;font-size:14px;">新建</td>' +
+        '<td class="market-cell" style="text-align:center;"><input type="text" class="edit-input" id="new-market-' + newId + '" readonly placeholder="自动填充" style="background:#f5f5f5;color:#666;"></td>' +
+        '<td class="rate-cell" style="text-align:center;"><select class="edit-select" id="new-rate-' + newId + '" style="width:100%;">' + rateOptions + '</select></td>' +
+        '<td class="discount-cell" style="text-align:center;"><input type="text" class="edit-input" id="new-discount-' + newId + '" readonly placeholder="自动计算" style="background:#f5f5f5;color:#2f9e44;"></td>' +
+        '<td style="text-align:center;"><span class="status-badge status-待处理">待处理</span></td>' +
+        '<td style="text-align:center;color:#aaa;font-size:14px;">新建</td>' +
         '<td style="text-align:center;">' +
             '<button class="action-link btn-save" onclick="saveNew(' + newId + ')">保存</button>' +
             '<span style="color:#ddd;">|</span>' +
@@ -456,6 +456,8 @@ function startEdit(orderId) {
     }
 
     row.classList.add('edit-row');
+    // 编辑时左对齐
+    row.style.textAlign = 'left';
     editBtn.textContent = '保存';
     editBtn.className = 'action-link btn-save';
     editBtn.onclick = function() { saveEdit(orderId); };
@@ -492,6 +494,7 @@ function cancelEdit(orderId) {
     }
 
     row.classList.remove('edit-row');
+    row.style.textAlign = '';
     editBtn.textContent = '编辑';
     editBtn.className = 'action-link btn-edit';
     editBtn.onclick = function() { startEdit(orderId); };
