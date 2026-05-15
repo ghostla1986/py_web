@@ -234,11 +234,21 @@ function addNewRow() {
 
     // 商品下拉切换时自动填充市场售价，并按折扣率计算优惠售价
     document.getElementById('new-product-' + newId).addEventListener('change', function() {
-        recalcDiscount(newId);
+        var sel = this;
+        var selected = sel.options[sel.selectedIndex];
+        var price = selected.getAttribute('data-price');
+        if (price) {
+            var marketVal = parseFloat(price).toFixed(2);
+            document.getElementById('new-market-' + newId).value = marketVal;
+            // 再根据折扣率计算优惠售价
+            recalcDiscount(newId);
+        }
     });
 
-    // 触发一次初始计算（如果商品已选）
-    recalcDiscount(newId);
+    // 折扣率变化时也联动
+    document.getElementById('new-rate-' + newId).addEventListener('change', function() {
+        recalcDiscount(newId);
+    });
 }
 
 function cancelNew(rowId) {
@@ -359,7 +369,7 @@ function startEdit(orderId) {
 
     // 市场售价
     if (isAdmin) {
-        marketCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-market-' + orderId + '" value="' + marketVal + '" onchange="recalcEditDiscount(' + orderId + ')">';
+        marketCell.innerHTML = '<input type="number" step="0.01" class="edit-input" id="edit-market-' + orderId + '" value="' + marketVal + '" oninput="recalcEditDiscount(' + orderId + ')">';
     } else {
         marketCell.innerHTML = '<span class="amount-text">' + currentMarket + '</span>';
     }
