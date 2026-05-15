@@ -127,11 +127,7 @@
         padding: 30px;
     }
 
-    select.form-control {
-        appearance: auto;
-    }
-
-    .discount-options {
+.discount-options {
         display: flex;
         gap: 10px;
         flex-wrap: wrap;
@@ -190,18 +186,16 @@
     <div class="form-card">
         <form id="discountForm">
             <div style="margin-bottom:16px;">
-                <label>选择申请折扣</label>
-                <div class="discount-options">
-                    {% set options = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0] %}
-                    {% for opt in options %}
+                <label>选择申请折扣（可享受最大折扣）</label>
+                <select class="form-control" name="requested_discount" id="discountSelect" onchange="updatePreview()">
+                    <option value="">-- 请选择 --</option>
+                    {% for i in range(5, 101, 5) %}
+                    {% set opt = i / 100.0 %}
                     {% if opt < current_discount %}
-                    <label>
-                        <input type="radio" name="requested_discount" value="{{ opt }}" onchange="updatePreview()">
-                        <span>{{ "{:.0%}".format(opt) }}</span>
-                    </label>
+                    <option value="{{ opt }}">{{ "{:.0%}".format(opt) }}（{{ i }}折）</option>
                     {% endif %}
                     {% endfor %}
-                </div>
+                </select>
                 <div id="previewArea" style="margin-top:12px;font-size:14px;color:#888;display:none;">
                     市场价 <span id="previewMarket">100</span> 元 → 优惠价 <strong id="previewDiscount" style="color:#2f9e44;">--</strong> 元
                 </div>
@@ -250,13 +244,11 @@
 var currentDiscount = {{ current_discount }};
 
 function updatePreview() {
-    var selected = document.querySelector('input[name="requested_discount"]:checked');
+    var select = document.getElementById('discountSelect');
     var previewArea = document.getElementById('previewArea');
-    if (selected) {
-        var rate = parseFloat(selected.value);
-        var marketSpan = document.getElementById('previewMarket');
-        var discountSpan = document.getElementById('previewDiscount');
-        discountSpan.textContent = (100 * rate).toFixed(0);
+    if (select.value) {
+        var rate = parseFloat(select.value);
+        document.getElementById('previewDiscount').textContent = (100 * rate).toFixed(0);
         previewArea.style.display = 'block';
     } else {
         previewArea.style.display = 'none';
@@ -264,14 +256,16 @@ function updatePreview() {
 }
 
 function submitRequest() {
-    var selected = document.querySelector('input[name="requested_discount"]:checked');
+    var selected = document.getElementById('discountSelect').value;
     if (!selected) { alert('请选择申请折扣'); return; }
 
     var btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.textContent = '提交中...';
 
-    var fd = new FormData(document.getElementById('discountForm'));
+    var fd = new FormData();
+    fd.append('requested_discount', selected);
+    fd.append('reason', document.querySelector('textarea[name="reason"]').value.trim());
     fetch('/users/discount_request', { method: 'POST', body: fd })
         .then(function(r) { return r.json(); })
         .then(function(data) {
