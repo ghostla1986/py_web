@@ -86,6 +86,100 @@
     .inline-action-form {
         display: inline;
     }
+
+    /* 审核弹窗 */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.4);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-overlay.open {
+        display: flex;
+    }
+
+    .modal-box {
+        background: #fff;
+        border-radius: 12px;
+        padding: 28px 32px;
+        width: 480px;
+        max-width: 90vw;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+
+    .modal-box h4 {
+        margin: 0 0 20px 0;
+        font-size: 18px;
+        color: #333;
+    }
+
+    .modal-box .form-group {
+        margin-bottom: 16px;
+    }
+
+    .modal-box label {
+        font-size: 14px;
+        font-weight: 500;
+        color: #555;
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .modal-box select,
+    .modal-box input {
+        width: 100%;
+        height: 38px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        padding: 0 12px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+
+    .modal-box select:focus,
+    .modal-box input:focus {
+        border-color: #4dabf7;
+        outline: none;
+    }
+
+    .modal-box input[readonly] {
+        background: #f5f5f5;
+        color: #666;
+    }
+
+    .modal-box .btn-row {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 20px;
+    }
+
+    .modal-box .btn-row button {
+        padding: 9px 24px;
+        border-radius: 8px;
+        border: none;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    .modal-box .btn-confirm {
+        background: #2f9e44;
+        color: #fff;
+    }
+
+    .modal-box .btn-confirm:hover { opacity: 0.9; }
+
+    .modal-box .btn-cancel {
+        background: #f0f0f0;
+        color: #666;
+    }
+
+    .modal-box .btn-cancel:hover { background: #e0e0e0; }
 </style>
 
 <div class="audit-container">
@@ -118,7 +212,7 @@
                     </td>
                     <td style="color: #888; font-size: 14px;">{{ o.create_time }}</td>
                     <td style="text-align: center;">
-                        <button class="action-link btn-approve" onclick="approveOrder({{ o.id }})">审核通过</button>
+                        <button class="action-link btn-approve" onclick="openAuditModal({{ o.id }})">审核</button>
                         <span style="color: #ddd;">|</span>
                         <form class="inline-action-form" method="post" action="/users/audit/reject/{{ o.id }}">
                             <button type="submit" class="action-link btn-reject">退回</button>
@@ -136,17 +230,119 @@
     </div>
 </div>
 
+<!-- 审核弹窗 -->
+<div class="modal-overlay" id="auditModal">
+    <div class="modal-box">
+        <h4>审核订单</h4>
+        <input type="hidden" id="auditOrderId">
+        <div class="form-group">
+            <label>商品</label>
+            <select id="auditProduct"></select>
+        </div>
+        <div class="form-group">
+            <label>市场价</label>
+            <input type="text" id="auditMarketPrice" readonly>
+        </div>
+        <div class="form-group">
+            <label>折扣率</label>
+            <select id="auditRate" onchange="updateAuditPrice()"></select>
+        </div>
+        <div class="form-group">
+            <label>售出价</label>
+            <input type="text" id="auditDiscountPrice" readonly>
+        </div>
+        <div class="btn-row">
+            <button class="btn-cancel" onclick="closeAuditModal()">取消</button>
+            <button class="btn-confirm" onclick="confirmAudit()">确认审核</button>
+        </div>
+    </div>
+</div>
+
 <script>
-function approveOrder(orderId) {
+var auditData = {};
+var products = [
+    {% for p in products %}
+    { "product": "{{ p.product }}", "price": {{ p.price }} }{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+
+function openAuditModal(orderId) {
     var fd = new FormData();
+    fetch('/main/get_order/' + orderId, { method: 'GET' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) { alert(data.error); return; }
+            auditData = data;
+            document.getElementById('auditOrderId').value = data.id;
+
+            // 商品下拉
+            var productSel = document.getElementById('auditProduct');
+            productSel.innerHTML = '';
+            for (var i = 0; i < products.length; i++) {
+                var opt = document.createElement('option');
+                opt.value = products[i].product;
+                opt.textContent = products[i].product;
+                opt.setAttribute('data-price', products[i].price);
+                if (products[i].product === data.product) opt.selected = true;
+                productSel.appendChild(opt);
+            }
+            productSel.onchange = function() { updateAuditPrice(); };
+
+            // 市场价
+            document.getElementById('auditMarketPrice').value = '¥' + parseFloat(data.market_price).toFixed(2);
+
+            // 折扣率下拉 30%~100%
+            var rateSel = document.getElementById('auditRate');
+            rateSel.innerHTML = '';
+            for (var r = 100; r >= 30; r -= 5) {
+                var opt = document.createElement('option');
+                opt.value = (r / 100).toFixed(2);
+                opt.textContent = r + '%';
+                rateSel.appendChild(opt);
+            }
+            // 按当前折扣率选
+            var curRate = data.discount_price / data.market_price;
+            rateSel.value = curRate.toFixed(2);
+
+            updateAuditPrice();
+            document.getElementById('auditModal').classList.add('open');
+        })
+        .catch(function() { alert('获取订单信息失败'); });
+}
+
+function updateAuditPrice() {
+    var productSel = document.getElementById('auditProduct');
+    var selected = productSel.options[productSel.selectedIndex];
+    var marketPrice = parseFloat(selected.getAttribute('data-price'));
+    document.getElementById('auditMarketPrice').value = '¥' + marketPrice.toFixed(2);
+
+    var rate = parseFloat(document.getElementById('auditRate').value);
+    var discountPrice = marketPrice * rate;
+    document.getElementById('auditDiscountPrice').value = '¥' + discountPrice.toFixed(2);
+}
+
+function closeAuditModal() {
+    document.getElementById('auditModal').classList.remove('open');
+}
+
+function confirmAudit() {
+    var orderId = document.getElementById('auditOrderId').value;
+    if (!orderId) return;
+
+    var product = document.getElementById('auditProduct').value;
+    var marketPriceStr = document.getElementById('auditMarketPrice').value.replace('¥', '');
+    var discountPriceStr = document.getElementById('auditDiscountPrice').value.replace('¥', '');
+
+    var fd = new FormData();
+    fd.append('product', product);
+    fd.append('market_price', marketPriceStr);
+    fd.append('discount_price', discountPriceStr);
+
     fetch('/users/audit/approve/' + orderId, { method: 'POST', body: fd })
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert(data.msg || '审核失败');
-            }
+            if (data.success) { location.reload(); }
+            else { alert(data.msg || '审核失败'); }
         })
         .catch(function() { alert('网络错误'); });
 }

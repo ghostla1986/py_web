@@ -115,23 +115,40 @@ def audit_orders():
             "status": r[5],
             "create_time": r[6].strftime("%Y-%m-%d %H:%M:%S") if r[6] else ""
         })
-    return render_template("users/audit.html", orders=orders)
+    prod_rows = fetch_all("SELECT product, price FROM inventory WHERE audit_status='已通过' ORDER BY product")
+    products = [{"product": r[0], "price": float(r[1])} for r in prod_rows]
+    return render_template("users/audit.html", orders=orders, products=products)
 
 
 @us.route('/users/audit/approve/<int:order_id>', methods=["POST"])
 def audit_approve(order_id):
-    order = fetch_one("SELECT product FROM orders WHERE id=%s AND status='待处理'", (order_id,))
+    order = fetch_one("SELECT id, product FROM orders WHERE id=%s AND status='待处理'", (order_id,))
     if not order:
         return jsonify({"success": False, "msg": "订单不存在或已处理"}), 400
 
-    product = order[0]
+    # 接收前端传入的商品/价格信息
+    product = request.form.get("product", order[1])
+    market_price_str = request.form.get("market_price")
+    discount_price_str = request.form.get("discount_price")
+
+    market_price = float(market_price_str) if market_price_str else None
+    discount_price = float(discount_price_str) if discount_price_str else None
+
+    # 更新订单信息
+    if market_price and discount_price:
+        execute(
+            "UPDATE orders SET product=%s, market_price=%s, discount_price=%s, status='待发货' WHERE id=%s AND status='待处理'",
+            (product, market_price, discount_price, order_id)
+        )
+    else:
+        execute("UPDATE orders SET status='待发货' WHERE id=%s AND status='待处理'", (order_id,))
+
+    # 扣减库存
     inv = fetch_one("SELECT remaining_qty FROM inventory WHERE product=%s", (product,))
     stock = inv[0] if inv else 0
-
     if stock <= 0:
         return jsonify({"success": False, "msg": "该商品库存为0，请补充后再审核"}), 400
 
-    execute("UPDATE orders SET status='待发货' WHERE id=%s AND status='待处理'", (order_id,))
     execute(
         "UPDATE inventory SET remaining_qty = remaining_qty - 1, outbound_qty = outbound_qty + 1 WHERE product=%s AND remaining_qty > 0",
         (product,)
