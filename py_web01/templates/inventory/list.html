@@ -450,7 +450,14 @@ function saveNewItem(rowId) {
     fetch('/inventory/api_create', { method: 'POST', body: fd })
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            if (data.success) { location.reload(); }
+            if (data.success) {
+                // 仓管员添加的商品需审核，跳转到待审批页查看
+                if (data.audit_status === '待审核') {
+                    window.location.href = '/inventory/pending';
+                } else {
+                    location.reload();
+                }
+            }
             else { alert(data.error || '创建失败'); }
         })
         .catch(function() { alert('网络错误'); });

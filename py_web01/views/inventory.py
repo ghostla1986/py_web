@@ -202,7 +202,7 @@ def api_create_item():
             "VALUES (%s, %s, %s, 0, %s, %s, %s)",
             (product, price, total_qty, total_qty, audit_status, user_name)
         )
-        return jsonify({"success": True, "id": new_id})
+        return jsonify({"success": True, "id": new_id, "audit_status": audit_status})
     except ValueError:
         return jsonify({"error": "格式错误"}), 400
     except Exception as e:
