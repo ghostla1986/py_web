@@ -105,7 +105,24 @@
 
     <!-- 左侧栏 -->
     <div class="sidebar">
-        <div class="sidebar-header">订单管理系统</div>
+        <div class="sidebar-header">
+            <div style="margin-bottom:12px;">订单管理系统</div>
+            <div style="display:flex;align-items:center;gap:8px;font-weight:400;font-size:13px;">
+                {% set ul = session.get('user_level', '') %}
+                <span class="level-badge" style="
+                    display:inline-block;
+                    padding:2px 10px;
+                    border-radius:10px;
+                    font-size:11px;
+                    font-weight:500;
+                    {% if ul == '管理员' %}background:#1e3a5f;color:#93c5fd;
+                    {% elif ul in ('物流仓管员', '物流专员') %}background:#1e3a5f;color:#93c5fd;
+                    {% else %}background:#1e3a5f;color:#93c5fd;{% endif %}
+                ">{{ ul }}</span>
+                <span style="color:#94a3b8;">{{ session.get('user_name', '') }}</span>
+                <a href="/logout" style="margin-left:auto;color:#64748b;text-decoration:none;font-size:12px;" title="登出">🚪</a>
+            </div>
+        </div>
         <nav class="sidebar-nav">
             <!-- 用户管理（一级菜单） -->
             <a href="/users/list" class="nav-item {% if request.path.startswith('/users') and not request.path.startswith('/users/address') %}active{% endif %}">
@@ -160,26 +177,8 @@
             {% endif %}
         </nav>
 
-        <!-- 底部：当前用户等级标签 + 用户名 + 登出 -->
-        <div class="sidebar-footer">
-            <div style="margin-bottom:8px;display:flex;align-items:center;gap:6px;">
-                <span class="level-badge" style="
-                    display:inline-block;
-                    padding:2px 10px;
-                    border-radius:12px;
-                    font-size:11px;
-                    font-weight:500;
-                    {% set ul = session.get('user_level', '') %}
-                    {% if ul == '管理员' %}background:#e3f2fd;color:#1565c0;
-                    {% elif ul in ('物流仓管员', '物流专员') %}background:#e8eaf6;color:#283593;
-                    {% else %}background:#e8f5e9;color:#2e7d32;{% endif %}
-                ">{{ session.get('user_level', '') }}</span>
-                <span style="color:#cbd5e1;font-size:13px;">{{ session.get('user_name', '') }}</span>
-            </div>
-            <a href="/logout" class="nav-item" style="padding:8px 0;font-size:13px;color:#ef4444;border-left:none;display:inline-block;">
-                <span style="margin-right:6px;">🚪</span> 登出
-            </a>
-        </div>
+        <!-- 底部（原用户信息已移至顶部，底部保留以备后用） -->
+        <div class="sidebar-footer"></div>
     </div>
 
     <!-- 主内容区 -->
