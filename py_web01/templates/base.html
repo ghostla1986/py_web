@@ -120,7 +120,7 @@
                     {% else %}background:#1e3a5f;color:#93c5fd;{% endif %}
                 ">{{ ul }}</span>
                 <span style="color:#94a3b8;">{{ session.get('user_name', '') }}</span>
-                <a href="/logout" style="margin-left:auto;color:#64748b;text-decoration:none;font-size:12px;" title="登出">🚪</a>
+                <a href="/logout" style="margin-left:auto;color:#64748b;text-decoration:none;font-size:13px;padding:2px 8px;border-radius:4px;border:1px solid #475569;transition:all 0.2s;" title="登出" onmouseover="this.style.color='#e2e8f0';this.style.borderColor='#64748b';" onmouseout="this.style.color='#64748b';this.style.borderColor='#475569';">退出</a>
             </div>
         </div>
         <nav class="sidebar-nav">
