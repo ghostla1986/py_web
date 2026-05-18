@@ -172,7 +172,7 @@
                         <button class="action-link btn-ship-order" onclick="shipFromOrder({{ o.id }}, '{{ o.customer }}', '{{ o.product }}', {{ o.discount_price }})">发货</button>
                         {% endif %}
                         <span class="action-sep" style="color: #ddd;">|</span>
-                        {% if user_level == '管理员' or o.status in ('待处理', '待发货') %}
+                        {% if user_level == '管理员' or (user_level != '管理员' and o.status == '待处理') %}
                         <form class="inline-delete-form" method="post" action="/main/delete/{{ o.id }}" onsubmit="return confirm('确定删除订单 #{{ o.id }} 吗？')">
                             <button type="submit" class="action-link btn-delete">删除</button>
                         </form>
