@@ -10,6 +10,12 @@ from utils import db
 ac = Blueprint("account", __name__)
 
 
+@ac.route('/')
+def index():
+    """根路径重定向到登录页"""
+    return redirect('/login')
+
+
 @ac.route('/login', methods=["GET", "POST"])
 def login():
     """
