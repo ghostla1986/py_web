@@ -23,4 +23,16 @@ def create_app():
     app.register_blueprint(inventory.inv)
     app.register_blueprint(users.us)
 
+    # 全局认证拦截：未登录用户强制跳转登录页
+    from flask import session, request, redirect
+
+    @app.before_request
+    def require_login():
+        """除登录页和静态资源外，所有路由均需登录"""
+        path = request.path
+        if path in ('/', '/login') or path.startswith('/static'):
+            return None
+        if not session.get('user_id'):
+            return redirect('/login')
+
     return app
